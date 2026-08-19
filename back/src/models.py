@@ -20,6 +20,21 @@ class User(Document):
     class Settings:
         name = "users"
 
+class Modpack(Document):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+
+    owner_id: str
+    shared_ids: list[str]
+
+    display_name: str
+
+    created_at : str = Field(default_factory=lambda: datetime.utcnow().isoformat())
+    updated_at : str = Field(default_factory=lambda: datetime.utcnow().isoformat())
+
+    class Settings:
+        name = "modpacks"
+
+
 # Requets :
 class RegisterRequest(BaseModel):
     pseudo: str

@@ -7,7 +7,7 @@ from database import connect_db
 import config
 
 # Routers
-from routes import auth, account
+from routes import auth, account, modpacks
 
 # Api :
 app = FastAPI()
@@ -29,6 +29,7 @@ app.state.limiter = limiter
 # Routes
 app.include_router(auth.router)
 app.include_router(account.router)
+app.include_router(modpacks.router)
 
 @app.get("/")
 async def root():
