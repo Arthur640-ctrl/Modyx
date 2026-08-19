@@ -1,4 +1,9 @@
 import { API_URL } from "./api"
+import {
+    Routes,
+    Route,
+    Navigate
+} from "react-router-dom"
 
 export async function register(pseudo, email, password) {
 
@@ -91,11 +96,4 @@ export async function login(email, password) {
             }
         }
     }
-}
-
-export async function logout() {
-    localStorage.removeItem("modyx_token")
-    navigate("/", { replace: true })
-
-    return true
 }

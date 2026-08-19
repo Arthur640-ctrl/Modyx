@@ -1,8 +1,8 @@
 ﻿import styles from "./Auth.module.css"
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { register, login } from "../utils/api/Auth.api"
-import { getAccount } from "../utils/api/Account.api"
+import { register, login } from "../../utils/api/Auth.api"
+import { getAccount } from "../../utils/api/Account.api"
 
 export default function Auth() {
     const navigate = useNavigate()
