@@ -1,0 +1,12 @@
+# Racine
+/tests
+/.vscode
+
+# Back
+/back/.env.production
+/back/.pytest_cache
+/back/tests
+/back/src/__pycache__
+/back/src/core/__pycache__
+/back/src/routes/__pycache__
+/back/src/utils/__pycache__
