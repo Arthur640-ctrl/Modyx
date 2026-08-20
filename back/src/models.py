@@ -64,12 +64,23 @@ class Message(Document):
 
     role: str
     content: list[str]
+    workflow_id: PydanticObjectId = None
 
     created_at : str = Field(default_factory=lambda: datetime.utcnow().isoformat())
     updated_at : str = Field(default_factory=lambda: datetime.utcnow().isoformat())
 
     class Settings:
         name = "messages"
+
+class Workflow(Document):
+    history: list[dict] = []
+    summary: str = ""
+
+    created_at : str = Field(default_factory=lambda: datetime.utcnow().isoformat())
+    updated_at : str = Field(default_factory=lambda: datetime.utcnow().isoformat())
+
+    class Settings:
+        name = "workflows"
 
 # Requets :
 class RegisterRequest(BaseModel):
