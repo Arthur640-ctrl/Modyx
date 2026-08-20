@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends, Request
 from datetime import datetime
-import re
+import asyncio
+from generator.agent_run import *
 from models import *
 from database import *
 from core.auth_security import *
@@ -115,3 +116,137 @@ async def modpack_new(
             "modpack_id": modpack.id,
         } 
     }
+
+@router.post("/chat")
+async def modpack_chat(
+    request: Request,
+    data: ChatModpackRequest,
+    # user: User = Depends(get_current_user)
+):
+
+    user = await User.find_one(
+        User.id == "4f168fa7-bb46-49c6-bb20-3a8d5c05adda"
+    ) 
+
+    # Récuperation modpack
+    try:
+        modpack_id_obj = PydanticObjectId(data.modpack_id)
+    except Exception:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error": 400,
+                "message": f"Invalid modpack ID"
+            }
+        )
+
+    modpack = await Modpack.find_one(
+        Modpack.id == modpack_id_obj
+    )
+
+    if not modpack:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "error": 404,
+                "message": f"Modpack not found"
+            }
+        )
+
+    if user.id != modpack.owner_id:
+        raise HTTPException(
+            status_code=403,
+            detail={
+                "error": 403,
+                "message": "You do not have permission to access this modpack"
+            }
+        )
+
+    # Check de la queue avant de tout créer et initialiser
+    if agent_queue.full():
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "error": 503,
+                "message": "Too many agent tasks queued"
+            }
+        )
+
+    # Récuperation conversation
+    conversation = await Conversation.find_one(
+        Conversation.modpack_id == modpack.id
+    )
+
+    # Création d'un AgentRun
+    agent_run = AgentRun(
+        history=[],
+        summary="",
+
+        state="waiting"
+    )
+
+    await agent_run.insert()
+
+    # Création du message utilisateur
+    user_message = Message(
+        role="user",
+        content=[data.prompt],
+    )
+
+    await user_message.insert()
+
+    # Ajout du message utilisateur dans la conversation
+    conversation.messages.append(str(user_message.id))
+    await conversation.save()
+
+    # Création du message assistant
+    assistant_message = Message(
+        role="assistant",
+        content=[],
+        agent_run_id=agent_run.id
+    )
+
+    await assistant_message.insert()
+
+    # Ajout du message assistant dans la conversation
+    conversation.messages.append(str(assistant_message.id))
+    await conversation.save()
+
+    # Envoie de la tache au worker
+    try:
+        agent_queue.put_nowait(
+            (
+                data.prompt,
+                str(modpack.id),
+                str(agent_run.id),
+                assistant_message
+            )
+        )
+
+    except asyncio.QueueFull:
+        agent_run.state = "failed"
+        await agent_run.save()
+
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "error": 503,
+                "message": "Too many agent tasks queued"
+            }
+        )
+
+    # Update du state de l'agent run
+    agent_run.state = "queued"
+    await agent_run.save()
+
+    return {
+        "error": None,
+        "message": "Request accepted",
+        "data": {
+            "user_message_id": str(user_message.id),
+            "modpack_id": str(modpack.id),
+            "agent_run": str(agent_run.id),
+            "state": agent_run.state
+        }
+    }
+

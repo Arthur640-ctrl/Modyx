@@ -60,11 +60,9 @@ class Conversation(Document):
         name = "conversations"
 
 class Message(Document):
-    messages: list[str]
-
     role: str
     content: list[str]
-    workflow_id: PydanticObjectId = None
+    agent_run_id: PydanticObjectId = None
 
     created_at : str = Field(default_factory=lambda: datetime.utcnow().isoformat())
     updated_at : str = Field(default_factory=lambda: datetime.utcnow().isoformat())
@@ -72,15 +70,17 @@ class Message(Document):
     class Settings:
         name = "messages"
 
-class Workflow(Document):
+class AgentRun(Document):
     history: list[dict] = []
     summary: str = ""
 
+    state: str = "waiting"
+    
     created_at : str = Field(default_factory=lambda: datetime.utcnow().isoformat())
     updated_at : str = Field(default_factory=lambda: datetime.utcnow().isoformat())
 
     class Settings:
-        name = "workflows"
+        name = "agent_runs"
 
 # Requets :
 class RegisterRequest(BaseModel):
@@ -101,3 +101,7 @@ class NewModpackRequest(BaseModel):
     name: str
     minecraft_version: str
     loader: str 
+
+class ChatModpackRequest(BaseModel):
+    prompt: str
+    modpack_id: str

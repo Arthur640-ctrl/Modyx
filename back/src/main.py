@@ -7,15 +7,34 @@ from contextlib import asynccontextmanager
 from database import connect_db
 import config
 from generator.llm.tools import register_tools
+from generator.agent_run import *
 
 # Routers
 from routes import auth, account, modpacks, utils
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    print("API starting...")
+
     register_tools()
     await connect_db()
+
+    workers = [
+        asyncio.create_task(agent_worker())
+        for _ in range(2)
+    ]
+
     yield
+
+    for worker in workers:
+        worker.cancel()
+
+    await asyncio.gather(
+        *workers,
+        return_exceptions=True
+    )
+
+    print("API stopped.")
 
 
 # Api :
