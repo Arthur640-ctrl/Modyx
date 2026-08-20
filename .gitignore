@@ -10,3 +10,16 @@
 /back/src/core/__pycache__
 /back/src/routes/__pycache__
 /back/src/utils/__pycache__
+/back/src/TOOLS_TEST_2.py
+/back/src/generator/__pycache__
+/back/src/generator/tools/__pycache__
+back/src/generator/llm/__pycache__/registry.cpython-313.pyc
+back/src/generator/llm/tools/__pycache__/__init__.cpython-313.pyc
+back/src/generator/llm/tools/__pycache__/add_mod.cpython-313.pyc
+back/src/generator/llm/tools/__pycache__/get_mod_dependencies.cpython-313.pyc
+back/src/generator/llm/tools/__pycache__/get_mod_infos.cpython-313.pyc
+back/src/generator/llm/tools/__pycache__/get_mod_versions.cpython-313.pyc
+back/src/generator/llm/tools/__pycache__/get_pack_mods.cpython-313.pyc
+back/src/generator/llm/tools/__pycache__/get_pack_version.cpython-313.pyc
+back/src/generator/llm/tools/__pycache__/search_mods.cpython-313.pyc
+back/src/generator/services/__pycache__/modrinth.cpython-313.pyc

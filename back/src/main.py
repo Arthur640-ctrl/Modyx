@@ -3,14 +3,23 @@ from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from core.limiter import limiter
+from contextlib import asynccontextmanager
 from database import connect_db
 import config
+from generator.llm.tools import register_tools
 
 # Routers
 from routes import auth, account, modpacks, utils
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    register_tools()
+    await connect_db()
+    yield
+
+
 # Api :
-app = FastAPI()
+app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -19,10 +28,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-@app.on_event("startup")
-async def startup_event():
-    await connect_db()
 
 app.state.limiter = limiter
 
