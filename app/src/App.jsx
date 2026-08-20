@@ -6,6 +6,7 @@ import Dashboard from "./pages/dashboard/Dashboard.jsx"
 import { getAccount } from "./utils/api/Account.api"
 
 import Home from "./pages/dashboard/home/Home.jsx"
+import Modpacks from "./pages/dashboard/modpacks/Modpacks.jsx"
 
 
 function ProtectedDashboardLayout() {
@@ -44,8 +45,8 @@ export default function App() {
                 {/* /dashboard redirige vers /dashboard/home */}
                 <Route index element={<Navigate to="home" replace />} />
                 
-                {/* La route correspondant à votre lien */}
                 <Route path="home" element={<Home />} />
+                <Route path="modpacks" element={<Modpacks />} />
                 
             </Route>
 

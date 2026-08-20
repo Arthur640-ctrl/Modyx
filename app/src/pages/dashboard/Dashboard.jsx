@@ -1,12 +1,13 @@
 import styles from './Dashboard.module.css'
 import { useEffect, useState } from "react"
 import { useNavigate, NavLink, Outlet } from "react-router-dom"
-import { Home, Search, Server, User, LogOut, Bell, Plus, Settings } from "lucide-react"
+import { Home, Search, Server, User, LogOut, Bell, Plus, Settings, LibraryBig } from "lucide-react"
 
 import { getAccount } from "../../utils/api/Account.api"
 
 const NAV_ITEMS = [
   { id: 'home', label: 'Accueil', icon: Home, path: '/dashboard/home' },
+  { id: 'modpacks', label: 'Modpacks', icon: LibraryBig, path: '/dashboard/modpacks' },
 ]
 
 export default function Dashboard() {

@@ -21,8 +21,6 @@ class User(Document):
         name = "users"
 
 class Modpack(Document):
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-
     owner_id: str
     shared_ids: list[str]
 
@@ -50,10 +48,7 @@ class LoginRequest(BaseModel):
 
     bot : str | None = None
 
-class UpdateAccountRequest(BaseModel):
-    pseudo: str | None = None
-    email: EmailStr | None = None
-
-class ChangePasswordRequest(BaseModel):
-    old_password: str
-    new_password: str
+class NewModpackRequest(BaseModel):
+    name: str
+    minecraft_version: str
+    loader: str 
