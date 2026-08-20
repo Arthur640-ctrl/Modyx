@@ -3,6 +3,7 @@ from typing import Optional
 from datetime import datetime
 from beanie import Document
 import uuid
+from beanie import PydanticObjectId
 
 # Documents :
 class User(Document):
@@ -32,6 +33,43 @@ class Modpack(Document):
     class Settings:
         name = "modpacks"
 
+class ModpackState(Document):
+    modpack_id: PydanticObjectId
+
+    loader: str
+    minecraft_version: str
+
+    mods: list[dict] = []
+
+    created_at : str = Field(default_factory=lambda: datetime.utcnow().isoformat())
+    updated_at : str = Field(default_factory=lambda: datetime.utcnow().isoformat())
+
+    class Settings:
+        name = "modpack_states"
+
+
+class Conversation(Document):
+    modpack_id: PydanticObjectId
+
+    messages: list[str] = []
+
+    created_at : str = Field(default_factory=lambda: datetime.utcnow().isoformat())
+    updated_at : str = Field(default_factory=lambda: datetime.utcnow().isoformat())
+
+    class Settings:
+        name = "conversations"
+
+class Message(Document):
+    messages: list[str]
+
+    role: str
+    content: list[str]
+
+    created_at : str = Field(default_factory=lambda: datetime.utcnow().isoformat())
+    updated_at : str = Field(default_factory=lambda: datetime.utcnow().isoformat())
+
+    class Settings:
+        name = "messages"
 
 # Requets :
 class RegisterRequest(BaseModel):

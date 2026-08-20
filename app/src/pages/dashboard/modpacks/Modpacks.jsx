@@ -271,11 +271,14 @@ export default function Home() {
                         ))}
                     </div>
                 </div>
-
-                <div className={styles.modpacks_list_empty_container}>
-                    <h1>Aucun modpacks</h1>
-                    <a href="" onClick={() => set_new_modpack_popup(true)}>Créer un modpack</a>
-                </div>
+                
+                {modpacks.length == 0 && (
+                    <div className={styles.modpacks_list_empty_container}>
+                        <h1>Aucun modpacks</h1>
+                        <a href="" onClick={() => set_new_modpack_popup(true)}>Créer un modpack</a>
+                    </div>
+                )}
+                
 
                 <div className={styles.separator}></div>
 

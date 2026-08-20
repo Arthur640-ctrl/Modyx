@@ -14,7 +14,7 @@ async def connect_db():
 
     await init_beanie(
         database=db,
-        document_models=[User, Modpack]
+        document_models=[User, Modpack, ModpackState, Conversation, Message]
     )
 
     print("Database connected !")
