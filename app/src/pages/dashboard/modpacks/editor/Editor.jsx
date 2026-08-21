@@ -53,6 +53,8 @@ export default function Editor() {
     const [sidebar_screen, set_sidebar_screen] = useState("")
     const [prompt, set_prompt] = useState("")
 
+    console.log(modpack_data)
+
     async function send_prompt() {
         const value = prompt.trim()
 
@@ -64,8 +66,6 @@ export default function Editor() {
             console.error("Failed to send prompt:", result.error)
             return
         }
-
-        console.log("Prompt sent:", result.data)
 
         set_prompt("")
 
