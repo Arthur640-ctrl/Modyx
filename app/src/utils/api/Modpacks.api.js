@@ -131,3 +131,94 @@ export async function create_modpack(name, minecraft_version, loader) {
         }
     }
 }
+
+export async function get_modpack(modpack_id) {
+    const token = localStorage.getItem("modyx_token")
+
+    if (!token) {
+        return {
+            success: false,
+            error: "No token found",
+            data: null
+        }
+    }
+
+    try {
+        const response = await fetch(`${API_URL}/modpacks/${modpack_id}`, {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`
+            }
+        })
+
+        const response_data = await response.json()
+
+        if (!response.ok) {
+            return {
+                success: false,
+                error: response_data.detail || "Failed to get modpack",
+                data: null
+            }
+        }
+
+        return {
+            success: true,
+            data: response_data
+        }
+    } catch (error) {
+        return {
+            success: false,
+            error: error.message || "Network error",
+            data: null
+        }
+    }
+}
+
+export async function send_modpack_chat(prompt, modpack_id) {
+    const token = localStorage.getItem("modyx_token")
+
+    if (!token) {
+        return {
+            success: false,
+            error: "No token found",
+            data: null
+        }
+    }
+
+    try {
+        const response = await fetch(`${API_URL}/modpacks/chat`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                prompt,
+                modpack_id
+            })
+        })
+
+        const response_data = await response.json()
+
+        if (!response.ok) {
+            return {
+                success: false,
+                error: response_data.detail || "Failed to send message",
+                data: null
+            }
+        }
+
+        return {
+            success: true,
+            data: response_data.data
+        }
+
+    } catch (error) {
+        return {
+            success: false,
+            error: error.message || "Network error",
+            data: null
+        }
+    }
+}

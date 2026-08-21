@@ -7,6 +7,7 @@ import { getAccount } from "./utils/api/Account.api"
 
 import Home from "./pages/dashboard/home/Home.jsx"
 import Modpacks from "./pages/dashboard/modpacks/Modpacks.jsx"
+import Editor from "./pages/dashboard/modpacks/editor/Editor.jsx"
 
 
 function ProtectedDashboardLayout() {
@@ -47,7 +48,8 @@ export default function App() {
                 
                 <Route path="home" element={<Home />} />
                 <Route path="modpacks" element={<Modpacks />} />
-                
+                <Route path="modpacks/editor" element={<Editor />} />
+                 
             </Route>
 
             <Route path="*" element={<Navigate to="/" replace />} />

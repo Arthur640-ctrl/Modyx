@@ -6,6 +6,9 @@
     flex-direction: column;
 
     gap: 20px;
+
+    box-sizing: border-box; /* include padding/borders within 100vh to avoid page scroll */
+    padding: 20px; /* internal spacing without causing vertical scrollbar */
 }
 
 .modpacks_header {

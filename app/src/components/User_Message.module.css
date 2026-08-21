@@ -1,0 +1,39 @@
+.message {
+    width: 100%;
+
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+
+    margin-bottom: 16px;
+}
+
+.message_content {
+    max-width: 40%;
+
+    background-color: var(--accent);
+    color: var(--text);
+
+    padding: 10px 14px;
+
+    border-radius: 10px;
+
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+
+    line-height: 1.5;
+
+    box-sizing: border-box;
+}
+
+.role {
+    text-align: right;
+
+    color: var(--text-muted);
+
+    font-weight: lighter;
+
+    opacity: 0.5;
+
+    margin: 5px 5px;
+}

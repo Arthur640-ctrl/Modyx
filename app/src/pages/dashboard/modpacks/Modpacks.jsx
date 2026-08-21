@@ -1,9 +1,11 @@
 import styles from './Modpacks.module.css'
 import { Dot, Edit, Download, ArrowUpToLine, ArrowLeftRight, Share2, House, ChevronRight, Plus } from "lucide-react"
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { get_modpacks_list, get_minecraft_versions, create_modpack } from '../../../utils/api/Modpacks.api'
 
 export default function Home() {
+    const navigate = useNavigate()
     
     // New modpack popup
     const [new_modpack_popup, set_new_modpack_popup] = useState(false)
@@ -43,9 +45,15 @@ export default function Home() {
         }
 
         load_minecraft_versions()
-
-        console.log(modpacks)
     }, [])
+
+    function ma_fonction_de_modyx(modpack_id) {
+        navigate('/dashboard/modpacks/editor', {
+            state: {
+                modpack_id
+            }
+        })
+    }
 
     async function handle_create_modpack() {
         if (!modpack_name.trim()) {
@@ -247,7 +255,9 @@ export default function Home() {
                                 <div className={styles.modpack_actions}>
                                     {modpack.relation === "owned" && (
                                         <button
+                                            type="button"
                                             title="Editer le modpack"
+                                            onClick={() => ma_fonction_de_modyx(modpack.id)}
                                         >
                                             <Edit />
                                         </button>

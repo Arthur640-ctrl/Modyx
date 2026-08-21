@@ -18,8 +18,8 @@
 
 .content {
     flex: 1;
-    padding: 40px;
-    overflow-y: auto;
+    /* padding: 40px; */
+    height: 100vh;
 }
 
 /* Nouveaux styles pour la sidebar */

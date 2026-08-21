@@ -38,7 +38,7 @@ async def modpacks_get(
         )
 
         data = {
-            "id": modpack.id,
+            "id": str(modpack.id),
 
             "owner_id": modpack.owner_id,
             "shared_ids": modpack.shared_ids,
@@ -121,13 +121,8 @@ async def modpack_new(
 async def modpack_chat(
     request: Request,
     data: ChatModpackRequest,
-    # user: User = Depends(get_current_user)
+    user: User = Depends(get_current_user)
 ):
-
-    user = await User.find_one(
-        User.id == "4f168fa7-bb46-49c6-bb20-3a8d5c05adda"
-    ) 
-
     # Récuperation modpack
     try:
         modpack_id_obj = PydanticObjectId(data.modpack_id)
@@ -249,4 +244,126 @@ async def modpack_chat(
             "state": agent_run.state
         }
     }
+
+@router.get("/{modpack_id}")
+async def modpack_get(
+    modpack_id: str,
+    request: Request,
+    user: User = Depends(get_current_user)
+):  
+    # Validation de l'ID
+    try:
+        modpack_id_obj = PydanticObjectId(modpack_id)
+    except Exception:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error": 400,
+                "message": "Invalid modpack ID"
+            }
+        )
+
+    # Récupération du modpack
+    modpack = await Modpack.find_one(
+        Modpack.id == modpack_id_obj
+    )
+
+    if not modpack:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "error": 404,
+                "message": "Modpack not found"
+            }
+        )
+
+    # Vérification des permissions
+    if modpack.owner_id != user.id and user.id not in modpack.shared_ids:
+        raise HTTPException(
+            status_code=403,
+            detail={
+                "error": 403,
+                "message": "You do not have permission to access this modpack"
+            }
+        )
+
+    # Recup du modpack_state
+    modpack_state = await ModpackState.find_one(
+        ModpackState.modpack_id == modpack.id
+    )
+
+    # Recup conversation
+    conversation = await Conversation.find_one(
+        Conversation.modpack_id == modpack.id
+    )
+
+    # Build conversation
+    conversation_history = []
+
+    for message_id in conversation.messages:
+        try:
+            message_id_obj = PydanticObjectId(message_id)
+        except Exception:
+            continue
+
+        message = await Message.find_one(
+            Message.id == message_id_obj
+        )
+
+        if not message:
+            continue 
+
+        if message.role == "user":
+            conversation_history.append({
+                "role": "user",
+                "content": message.content[0]
+            })
+            continue
+        else:
+            agent_run = await AgentRun.find_one(
+                AgentRun.id == message.agent_run_id
+            )
+
+            agent_run_history = []
+
+            for step in agent_run.history:
+                if step["role"] == "system":
+                    continue
+                else:
+                    agent_run_history.append(step)
+
+            conversation_history.append({
+                "role": "assistant",
+                "content": {
+                    "agent_run": agent_run_history,
+                    "summary": agent_run.summary
+                }
+            })
+
+    # Send response
+
+    data = {
+        "modpack_id": str(modpack.id),
+
+        "display_name": modpack.display_name,
+
+        "owner_id": modpack.owner_id,
+        "shared_ids": modpack.shared_ids,
+
+        "conversation": {
+            "id": str(conversation.id),
+            "history": conversation_history
+        },
+
+        "state": {
+            "id": str(modpack_state.id),
+            "loader": modpack_state.loader,
+            "minecraft_version": modpack_state.minecraft_version,
+            "mods": modpack_state.mods
+        }
+    }
+
+    return data
+
+            
 
