@@ -11,7 +11,11 @@ import {
 import { useEffect, useRef, useState } from "react"
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom"
 import styles from "./Editor.module.css"
-import { send_modpack_chat, get_modpack } from "../../../../utils/api/Modpacks.api"
+import {
+    send_modpack_chat,
+    get_modpack,
+    stream_agent_run
+} from "../../../../utils/api/Modpacks.api"
 import User_Message from "../../../../components/User_Message.jsx"
 import Assistant_Message from "../../../../components/Assistant_Message.jsx"
 
@@ -22,6 +26,8 @@ export default function Editor() {
     const textarea_ref = useRef(null)
     const [modpack_id, set_modpack_id] = useState("")
     const [modpack_data, set_modpack_data] = useState({})
+    const [stream_messages, set_stream_messages] = useState([])
+    const [stream_user_message, set_stream_user_message] = useState(null)
 
     useEffect(() => {
         const next_modpack_id = location.state?.modpack_id ?? null
@@ -53,19 +59,46 @@ export default function Editor() {
     const [sidebar_screen, set_sidebar_screen] = useState("")
     const [prompt, set_prompt] = useState("")
 
-    console.log(modpack_data)
-
     async function send_prompt() {
         const value = prompt.trim()
 
         if (!value || !modpack_id) return
 
+        // Message utilisateur temporaire
+        set_stream_user_message(value)
+
         const result = await send_modpack_chat(value, modpack_id)
 
         if (!result.success) {
             console.error("Failed to send prompt:", result.error)
+            set_stream_user_message(null)
             return
         }
+
+        const agent_run_id = result.data.agent_run
+
+        await stream_agent_run(
+            agent_run_id,
+            (stream) => {
+                set_stream_messages(stream)
+            }
+        )
+
+        // Reload modpack
+        const modpack_result = await get_modpack(modpack_id)
+
+        if (!modpack_result.success) {
+            console.error(
+                "Failed to reload modpack:",
+                modpack_result.error
+            )
+        } else {
+            set_modpack_data(modpack_result.data)
+        }
+
+        // Le stream est terminé
+        set_stream_user_message(null)
+        set_stream_messages([])
 
         set_prompt("")
 
@@ -130,6 +163,20 @@ export default function Editor() {
                                 />
                             )
                         ))}
+
+                        {stream_user_message && (
+                            <User_Message
+                                content={stream_user_message}
+                            />
+                        )}
+
+                        {stream_messages.length > 0 && (
+                            <Assistant_Message
+                                agent_run={stream_messages}
+                                summary={null}
+                                stream={true}
+                            />
+                        )}
                     </div>
 
                     <div className={styles.prompt_bar}>

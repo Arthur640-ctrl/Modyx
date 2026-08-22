@@ -222,3 +222,93 @@ export async function send_modpack_chat(prompt, modpack_id) {
         }
     }
 }
+
+export async function stream_agent_run(agent_run_id, on_message) {
+    const token = localStorage.getItem("modyx_token")
+
+    if (!token) {
+        return {
+            success: false,
+            error: "No token found"
+        }
+    }
+
+    try {
+        const response = await fetch(
+            `${API_URL}/modpacks/stream/${agent_run_id}`,
+            {
+                method: "GET",
+                headers: {
+                    "Authorization": `Bearer ${token}`,
+                    "Accept": "text/event-stream"
+                }
+            }
+        )
+
+        if (!response.ok) {
+            return {
+                success: false,
+                error: "Failed to connect to stream"
+            }
+        }
+
+        const reader = response.body.getReader()
+        const decoder = new TextDecoder()
+
+        let buffer = ""
+
+        while (true) {
+            const { value, done } = await reader.read()
+
+            if (done) break
+
+            buffer += decoder.decode(value, {
+                stream: true
+            })
+
+            const events = buffer.split("\n\n")
+
+            buffer = events.pop()
+
+            for (const event of events) {
+
+                if (!event.startsWith("data:")) {
+                    continue
+                }
+
+                const json = event.slice(5).trim()
+
+                if (!json) {
+                    continue
+                }
+
+                try {
+                    const data = JSON.parse(json)
+
+                    // console.log(
+                    //     "[MODYX STREAM]",
+                    //     data
+                    // )
+
+                    on_message(data)
+
+                } catch (error) {
+                    console.error(
+                        "[MODYX STREAM] Invalid JSON:",
+                        json
+                    )
+                }
+            }
+        }
+
+        return {
+            success: true
+        }
+
+    } catch (error) {
+        return {
+            success: false,
+            error: error.message || "Stream connection failed"
+        }
+    }
+}

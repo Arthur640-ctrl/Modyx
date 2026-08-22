@@ -2,6 +2,7 @@ import json
 import asyncio
 
 from openai import AsyncOpenAI
+from types import SimpleNamespace
 
 from generator.llm.tools import *
 from generator.llm.registry import *
@@ -9,6 +10,8 @@ from generator.llm.tools.get_pack_mods import *
 from models import *
 from motor.motor_asyncio import AsyncIOMotorClient
 from beanie import init_beanie, PydanticObjectId
+
+from generator.stream_manager import *
 
 agent_queue = asyncio.Queue(maxsize=20)
 
@@ -23,10 +26,13 @@ async def call_llm(
     messages: list[dict],
     *,
     tools: bool = True,
+    agent_run_id: str = "",
+    stream_as: str = ""
 ):
     kwargs = {
         "model": MODEL,
         "messages": messages,
+        "stream": True,
     }
 
     if tools:
@@ -35,7 +41,86 @@ async def call_llm(
 
     response = await client.chat.completions.create(**kwargs)
 
-    return response.choices[0].message
+    await stream_manager.add_message(agent_run_id=agent_run_id, role=stream_as)
+
+    content = ""
+    role = None
+    tool_calls = {}
+
+    async for chunk in response:
+        delta = chunk.choices[0].delta
+
+        # Role
+        if delta.role:
+            role = delta.role
+
+        # Texte
+        if delta.content:
+            await stream_manager.update_content(
+                agent_run_id,
+                delta.content
+            )
+
+            content += delta.content
+
+        # Tool calls
+        if delta.tool_calls:
+            for tool_call in delta.tool_calls:
+
+                await stream_manager.update_tool_call(
+                    agent_run_id,
+                    tool_call.index,
+                    tool_call
+                )
+
+                index = tool_call.index
+
+                if index not in tool_calls:
+                    tool_calls[index] = {
+                        "id": "",
+                        "type": "function",
+                        "function": {
+                            "name": "",
+                            "arguments": ""
+                        }
+                    }
+
+                current = tool_calls[index]
+
+                if tool_call.id:
+                    current["id"] += tool_call.id
+
+                if tool_call.type:
+                    current["type"] = tool_call.type
+
+                if tool_call.function:
+                    if tool_call.function.name:
+                        current["function"]["name"] += tool_call.function.name
+
+                    if tool_call.function.arguments:
+                        current["function"]["arguments"] += tool_call.function.arguments
+
+    # On transforme les tool calls en objets accessibles avec .function.name
+    formatted_tool_calls = []
+
+    for tool_call in tool_calls.values():
+        formatted_tool_calls.append(
+            SimpleNamespace(
+                id=tool_call["id"],
+                type=tool_call["type"],
+                function=SimpleNamespace(
+                    name=tool_call["function"]["name"],
+                    arguments=tool_call["function"]["arguments"]
+                )
+            )
+        )
+
+    # Même type d'utilisation qu'avant
+    return SimpleNamespace(
+        role=role or "assistant",
+        content=content or None,
+        tool_calls=formatted_tool_calls or None
+    )
 
 def assistant_message_to_dict(message) -> dict:
     """
@@ -777,7 +862,9 @@ async def run_agent(prompt, modpack_id: str, agent_run: AgentRun, assistant_mess
                 "content": prompt
             }
         ],
-        tools=False
+        tools=False,
+        agent_run_id=str(agent_run.id),
+        stream_as= "user"
     )
 
     await update_agent_run_state(agent_run, "running")
@@ -856,7 +943,12 @@ async def run_agent(prompt, modpack_id: str, agent_run: AgentRun, assistant_mess
         # Etape 2A : Appeler le LM
         await update_agent_run_state(agent_run, "generating")
 
-        agent_response = await call_llm(HISTORY, tools=True)
+        agent_response = await call_llm(
+            HISTORY,
+            tools=True,
+            agent_run_id=str(agent_run.id),
+            stream_as="assistant"
+        )
 
         HISTORY.append(
             assistant_message_to_dict(agent_response)
@@ -920,24 +1012,24 @@ async def run_agent(prompt, modpack_id: str, agent_run: AgentRun, assistant_mess
 
             # print(f"Tools result > {result}")
 
-            HISTORY.append({
+            tool_message = {
                 "role": "tool",
                 "tool_call_id": tool_call.id,
                 "content": json.dumps(
                     result,
                     ensure_ascii=False,
                 ),
-            })
+            }
 
-            agent_run.history.append({
-                "role": "tool",
-                "tool_call_id": tool_call.id,
-                "content": json.dumps(
-                    result,
-                    ensure_ascii=False,
-                ),
-            })
+            HISTORY.append(tool_message)
+
+            agent_run.history.append(tool_message)
             await agent_run.save()
+
+            await stream_manager.add_message(
+                str(agent_run.id),
+                tool_message
+            )
 
     # Etape 3 : Lancer le résumé
     RESPONSE_AGENT_SP = f"""
@@ -968,7 +1060,9 @@ async def run_agent(prompt, modpack_id: str, agent_run: AgentRun, assistant_mess
                 "content": "Fais le résumé"
             }
         ],
-        tools=False
+        tools=False,
+        agent_run_id=str(agent_run.id),
+        stream_as="summary"
     )
 
     summary = summary.content

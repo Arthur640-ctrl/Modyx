@@ -3,7 +3,7 @@ import styles from "./Assistant_Message.module.css"
 import { useState } from "react"
 import { ChevronRight, Dot, Wrench, MessageSquare, ListChecks } from "lucide-react"
 
-export default function Assistant_Message({ agent_run, summary }) {
+export default function Assistant_Message({ agent_run, summary, stream = false }) {
 
     const [agent_steps_visible, set_agent_steps_visible] = useState(false)
     const steps = agent_run
@@ -113,12 +113,23 @@ export default function Assistant_Message({ agent_run, summary }) {
                 <p className={styles.role}>
                     Réponse
                 </p>
+                
+                {!stream && (
+                    <div className={styles.summary}>
+                        <ReactMarkdown>
+                            {summary || ""}
+                        </ReactMarkdown>
+                    </div>
+                )}
 
-                <div className={styles.summary}>
-                    <ReactMarkdown>
-                        {summary || ""}
-                    </ReactMarkdown>
-                </div>
+                {stream && (
+                    <div className={styles.summary}>
+                        <ReactMarkdown>
+                            {steps.find(step => step.role === "summary")?.content || ""}
+                        </ReactMarkdown>
+                    </div>
+                )}
+                
 
             </div>
         </div>

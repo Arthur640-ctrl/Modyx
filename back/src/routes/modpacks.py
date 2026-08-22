@@ -7,6 +7,9 @@ from database import *
 from core.auth_security import *
 from core.deps import get_current_user
 from utils.minecraft_versions import *
+from fastapi.responses import StreamingResponse
+import json
+from generator.stream_manager import *
 
 router = APIRouter(prefix="/modpacks")
 
@@ -181,6 +184,9 @@ async def modpack_chat(
     )
 
     await agent_run.insert()
+
+    # Initialize stream
+    stream_manager.create(str(agent_run.id))
 
     # Création du message utilisateur
     user_message = Message(
@@ -365,5 +371,82 @@ async def modpack_get(
 
     return data
 
-            
+@router.get("/stream/{agent_run_id}")
+async def modpack_stream(
+    agent_run_id: str,
+    request: Request,
+    user: User = Depends(get_current_user)
+):
+    try:
+        agent_run_id_obj = PydanticObjectId(agent_run_id)
+    except Exception:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error": 400,
+                "message": "Invalid agent run ID"
+            }
+        )
 
+    agent_run = await AgentRun.get(agent_run_id_obj)
+
+    if not agent_run:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "error": 404,
+                "message": "Agent run not found"
+            }
+        )
+
+    async def event_generator():
+
+        last_state = None
+
+        while True:
+
+            # Client déconnecté
+            if await request.is_disconnected():
+                break
+
+            current_stream = stream_manager.get(agent_run_id)
+
+            # Copie pour éviter de travailler directement sur l'objet mutable
+            current_state = json.loads(
+                json.dumps(current_stream, ensure_ascii=False)
+            )
+
+            # On n'envoie que si quelque chose a changé
+            if current_state != last_state:
+
+                yield (
+                    f"data: {json.dumps(current_state, ensure_ascii=False)}\n\n"
+                )
+
+                last_state = current_state
+
+            # Vérifier si le workflow est terminé
+            agent_run = await AgentRun.get(agent_run_id_obj)
+
+            if agent_run:
+                if agent_run.state in ["success", "failed"]:
+                    # Envoyer une dernière fois l'état final
+                    current_stream = stream_manager.get(agent_run_id)
+
+                    yield (
+                        f"data: {json.dumps(current_stream, ensure_ascii=False)}\n\n"
+                    )
+
+                    break
+
+            await asyncio.sleep(0.05)
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no"
+        }
+    )
