@@ -1,11 +1,12 @@
 import styles from './Modpacks.module.css'
 import { Dot, Edit, Download, ArrowUpToLine, ArrowLeftRight, Share2, House, ChevronRight, Plus } from "lucide-react"
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { get_modpacks_list, get_minecraft_versions, create_modpack } from '../../../utils/api/Modpacks.api'
 
 export default function Home() {
     const navigate = useNavigate()
+    const [search_params, set_search_params] = useSearchParams()
     
     // New modpack popup
     const [new_modpack_popup, set_new_modpack_popup] = useState(false)
@@ -47,7 +48,23 @@ export default function Home() {
         load_minecraft_versions()
     }, [])
 
-    function ma_fonction_de_modyx(modpack_id) {
+    useEffect(() => {
+        const should_open_popup = search_params.get('newModpack') === '1'
+
+        if (should_open_popup) {
+            set_new_modpack_popup(true)
+        }
+    }, [search_params])
+
+    function close_new_modpack_popup() {
+        set_new_modpack_popup(false)
+
+        const next_params = new URLSearchParams(search_params)
+        next_params.delete('newModpack')
+        set_search_params(next_params, { replace: true })
+    }
+
+    function switch_to_editor(modpack_id) {
         navigate('/dashboard/modpacks/editor', {
             state: {
                 modpack_id
@@ -86,7 +103,7 @@ export default function Home() {
             return
         }
 
-        set_new_modpack_popup(false)
+        close_new_modpack_popup()
 
         const modpacks_result = await get_modpacks_list()
 
@@ -104,7 +121,7 @@ export default function Home() {
             
             {/* New modpack popup */}
             {new_modpack_popup && (
-                <div className={styles.popup_overlay} onClick={() => set_new_modpack_popup(false)}>
+               <div className={styles.popup_overlay} onClick={close_new_modpack_popup}>
                     <div className={styles.popup} onClick={(e) => e.stopPropagation()}>
                         
                         <h2>Nouveau modpack</h2>
@@ -257,7 +274,7 @@ export default function Home() {
                                         <button
                                             type="button"
                                             title="Editer le modpack"
-                                            onClick={() => ma_fonction_de_modyx(modpack.id)}
+                                            onClick={() => switch_to_editor(modpack.id)}
                                         >
                                             <Edit />
                                         </button>

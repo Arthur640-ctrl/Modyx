@@ -72,13 +72,14 @@
     font-size: 15px;
     cursor: pointer;
     transition: var(--transition);
-    box-shadow: 0 4px 14px rgba(115, 160, 79, 0.25);
 }
 
 .ctaButton:hover {
     background-color: var(--accent-hover);
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(115, 160, 79, 0.35);
+}
+
+.ctaButton:active {
+    transform: scale(0.97);
 }
 
 .sidebarNav {

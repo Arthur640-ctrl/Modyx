@@ -45,12 +45,16 @@ export default function Dashboard() {
           <h1 className={styles.logo}>
             MOD<span className={styles.logoAccent}>YX</span>
           </h1>
-          <Bell className={styles.iconNotification} size={20} />
+          {/* <Bell className={styles.iconNotification} size={20} /> */}
         </div>
 
         {/* New Modpack CTA Button */}
         <div className={styles.ctaContainer}>
-          <button className={styles.ctaButton}>
+          <button
+            type="button"
+            className={styles.ctaButton}
+            onClick={() => navigate('/dashboard/modpacks?newModpack=1')}
+          >
             <Plus size={18} />
             <span>Nouveau Modpack</span>
           </button>

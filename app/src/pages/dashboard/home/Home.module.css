@@ -12,8 +12,11 @@
 }
 
 .home_header {
+    margin-top: 20px;
+
     display: flex;
     justify-content: space-between;
+    align-items: center;
 }
 
 
@@ -24,7 +27,9 @@
     border: none;
     border-radius: 10px;
 
-    padding: 5px 15px;
+    padding: 5px 12px;
+
+    margin: 15px;
 
     height: 85%;
 
@@ -100,6 +105,7 @@
 .modpacks_list {
     padding: 0;
     margin: 0;
+    margin-top: 30px;
 }
 
 .modpacks_list_header {
@@ -129,6 +135,7 @@
 .modpacks_list_view {
     display: flex;
     flex-direction: column;
+    gap: 12px;
 
     padding: 10px 0px;
 }
