@@ -192,7 +192,7 @@ async def update_agent_run_state(
 
     await agent_run.save()
 
-async def run_agent(prompt, modpack_id: str, agent_run: AgentRun, assistant_message: Message) -> str | None:
+async def run_agent(prompt, modpack_id: str, agent_run: AgentRun, assistant_message: Message, history: list[dict]) -> str | None:
 
     # Initialize context 
     context = ToolContext(
@@ -739,12 +739,6 @@ async def run_agent(prompt, modpack_id: str, agent_run: AgentRun, assistant_mess
     Select a version compatible with the current pack.
 
     ======================================================================
-    AVAILABLE TOOLS
-    ======================================================================
-
-    {tools}
-
-    ======================================================================
     EXECUTION STRATEGY
     ======================================================================
 
@@ -847,6 +841,12 @@ async def run_agent(prompt, modpack_id: str, agent_run: AgentRun, assistant_mess
     <what information the final agent must provide to the user>
 
     Do not include analysis, commentary, tool calls, or a response to the user.
+
+    ======================================================================
+    CONVERSATION HISTORY WITH THE USER
+    ======================================================================
+    
+    {history}
     """
 
     await update_agent_run_state(agent_run, "generating")
@@ -871,7 +871,7 @@ async def run_agent(prompt, modpack_id: str, agent_run: AgentRun, assistant_mess
 
     planificator_response = planificator_response.content
 
-    AGENT_SP = """
+    AGENT_SP = f"""
     You are the execution agent of Modyx, an AI assistant for managing Minecraft
     modpacks.
 
@@ -912,6 +912,9 @@ async def run_agent(prompt, modpack_id: str, agent_run: AgentRun, assistant_mess
     mention important versions, dependencies, or unresolved issues when relevant.
 
     Do not expose internal reasoning or execution details.
+
+    USER MESSAGE : 
+    {prompt}
     """
 
     HISTORY.append({
@@ -1078,7 +1081,7 @@ async def run_agent(prompt, modpack_id: str, agent_run: AgentRun, assistant_mess
 
 async def agent_worker():
     while True:
-        prompt, modpack_id, agent_run_id, assistant_message = await agent_queue.get()
+        prompt, modpack_id, agent_run_id, assistant_message, history = await agent_queue.get()
 
         agent_run = None
 
@@ -1093,7 +1096,8 @@ async def agent_worker():
                 prompt=prompt,
                 modpack_id=modpack_id,
                 agent_run=agent_run,
-                assistant_message=assistant_message
+                assistant_message=assistant_message,
+                history=history
             )
 
             await update_agent_run_state(agent_run, "success")

@@ -174,6 +174,38 @@ async def modpack_chat(
     conversation = await Conversation.find_one(
         Conversation.modpack_id == modpack.id
     )
+    
+    # Build conversation
+    conversation_history = []
+
+    for message_id in conversation.messages:
+        try:
+            message_id_obj = PydanticObjectId(message_id)
+        except Exception:
+            continue
+
+        message = await Message.find_one(
+            Message.id == message_id_obj
+        )
+
+        if not message:
+            continue 
+
+        if message.role == "user":
+            conversation_history.append({
+                "role": "user",
+                "content": message.content[0]
+            })
+            continue
+        else:
+            message_agent_run = await AgentRun.find_one(
+                AgentRun.id == message.agent_run_id
+            )
+
+            conversation_history.append({
+                "role": "assistant",
+                "content": message_agent_run.summary
+            })
 
     # Création d'un AgentRun
     agent_run = AgentRun(
@@ -220,7 +252,8 @@ async def modpack_chat(
                 data.prompt,
                 str(modpack.id),
                 str(agent_run.id),
-                assistant_message
+                assistant_message,
+                conversation_history
             )
         )
 
