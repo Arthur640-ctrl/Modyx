@@ -24,10 +24,26 @@ export default function Editor() {
     const location = useLocation()
     const navigate = useNavigate()
     const textarea_ref = useRef(null)
+    const chat_messages_ref = useRef(null)
+    const should_auto_scroll_ref = useRef(true)
+    const is_streaming_ref = useRef(false)
     const [modpack_id, set_modpack_id] = useState("")
     const [modpack_data, set_modpack_data] = useState({})
     const [stream_messages, set_stream_messages] = useState([])
     const [stream_user_message, set_stream_user_message] = useState(null)
+    const [is_streaming, set_is_streaming] = useState(false)
+
+    function scroll_chat_to_bottom(force = false) {
+        const chat_messages = chat_messages_ref.current
+
+        if (!chat_messages) return
+        if (!force && !should_auto_scroll_ref.current) return
+
+        chat_messages.scrollTo({
+            top: chat_messages.scrollHeight,
+            behavior: "auto"
+        })
+    }
 
     useEffect(() => {
         const next_modpack_id = location.state?.modpack_id ?? null
@@ -59,30 +75,91 @@ export default function Editor() {
     const [sidebar_screen, set_sidebar_screen] = useState("")
     const [prompt, set_prompt] = useState("")
 
+    function reset_prompt_textarea() {
+        if (!textarea_ref.current) return
+
+        textarea_ref.current.style.height = "48px"
+        textarea_ref.current.style.overflowY = "hidden"
+        textarea_ref.current.focus()
+    }
+
+    function handle_chat_scroll() {
+        const chat_messages = chat_messages_ref.current
+
+        if (!chat_messages || !is_streaming_ref.current) return
+
+        const distance_from_bottom =
+            chat_messages.scrollHeight -
+            (chat_messages.scrollTop + chat_messages.clientHeight)
+
+        should_auto_scroll_ref.current = distance_from_bottom <= 24
+    }
+
+    useEffect(() => {
+        is_streaming_ref.current = is_streaming
+    }, [is_streaming])
+
+    useEffect(() => {
+        const animation_frame = requestAnimationFrame(() => {
+            if (is_streaming) {
+                scroll_chat_to_bottom()
+                return
+            }
+
+            scroll_chat_to_bottom(true)
+        })
+
+        return () => cancelAnimationFrame(animation_frame)
+    }, [
+        modpack_data.conversation?.history,
+        stream_messages.length,
+        stream_user_message,
+        is_streaming
+    ])
+
     async function send_prompt() {
         const value = prompt.trim()
 
-        if (!value || !modpack_id) return
+        if (!value || !modpack_id || is_streaming) return
 
-        // Message utilisateur temporaire
+        set_prompt("")
         set_stream_user_message(value)
+        set_is_streaming(true)
+        should_auto_scroll_ref.current = true
+        reset_prompt_textarea()
+
+        requestAnimationFrame(() => {
+            scroll_chat_to_bottom(true)
+        })
 
         const result = await send_modpack_chat(value, modpack_id)
 
         if (!result.success) {
             console.error("Failed to send prompt:", result.error)
             set_stream_user_message(null)
+            set_is_streaming(false)
             return
         }
 
         const agent_run_id = result.data.agent_run
 
-        await stream_agent_run(
-            agent_run_id,
-            (stream) => {
-                set_stream_messages(stream)
-            }
-        )
+        try {
+            await stream_agent_run(
+                agent_run_id,
+                (stream) => {
+                    set_stream_messages(stream)
+
+                    requestAnimationFrame(() => {
+                        scroll_chat_to_bottom()
+                    })
+                }
+            )
+        } finally {
+            set_stream_user_message(null)
+            set_stream_messages([])
+            set_is_streaming(false)
+            should_auto_scroll_ref.current = true
+        }
 
         // Reload modpack
         const modpack_result = await get_modpack(modpack_id)
@@ -94,18 +171,6 @@ export default function Editor() {
             )
         } else {
             set_modpack_data(modpack_result.data)
-        }
-
-        // Le stream est terminé
-        set_stream_user_message(null)
-        set_stream_messages([])
-
-        set_prompt("")
-
-        if (textarea_ref.current) {
-            textarea_ref.current.style.height = "48px"
-            textarea_ref.current.style.overflowY = "hidden"
-            textarea_ref.current.focus()
         }
     }
 
@@ -148,7 +213,11 @@ export default function Editor() {
             <div className={styles.editor_container}>
                 <div className={styles.chat_container}>
 
-                    <div className={styles.chat_messages}>
+                    <div
+                        ref={chat_messages_ref}
+                        className={styles.chat_messages}
+                        onScroll={handle_chat_scroll}
+                    >
                         {modpack_data.conversation?.history?.map((message, index) => (
                             message.role === "user" ? (
                                 <User_Message
@@ -203,7 +272,7 @@ export default function Editor() {
                             className={styles.send_button}
                             onClick={send_prompt}
                             title="Envoyer"
-                            disabled={!prompt.trim()}
+                            disabled={!prompt.trim() || is_streaming}
                         >
                             <SendHorizonal size={18} />
                         </button>

@@ -1,12 +1,16 @@
 import ReactMarkdown from "react-markdown"
 import styles from "./Assistant_Message.module.css"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { ChevronRight, Dot, Wrench, MessageSquare, ListChecks } from "lucide-react"
 
 export default function Assistant_Message({ agent_run, summary, stream = false }) {
 
-    const [agent_steps_visible, set_agent_steps_visible] = useState(false)
+    const [agent_steps_visible, set_agent_steps_visible] = useState(stream)
     const steps = agent_run
+
+    useEffect(() => {
+        set_agent_steps_visible(stream)
+    }, [stream])
 
     return (
         <div className={styles.message}>
