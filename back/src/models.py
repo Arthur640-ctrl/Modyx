@@ -82,6 +82,21 @@ class AgentRun(Document):
     class Settings:
         name = "agent_runs"
 
+class AgentRunUsage(Document):
+    agent_run_id: PydanticObjectId = None
+
+    prompt_tokens_raw: int = 0
+    cache_hit_tokens: int = 0
+    cache_miss_tokens: int = 0
+    output_tokens: int = 0
+    total_tokens: int = 0
+    
+    created_at : str = Field(default_factory=lambda: datetime.utcnow().isoformat())
+    updated_at : str = Field(default_factory=lambda: datetime.utcnow().isoformat())
+
+    class Settings:
+        name = "agent_runs_usage"
+
 # Requets :
 class RegisterRequest(BaseModel):
     pseudo: str

@@ -217,6 +217,13 @@ async def modpack_chat(
 
     await agent_run.insert()
 
+    # Création d'un AgentRunUsage
+    agent_run_usage = AgentRunUsage(
+        agent_run_id=agent_run.id
+    )
+
+    await agent_run_usage.insert()
+
     # Initialize stream
     stream_manager.create(str(agent_run.id))
 

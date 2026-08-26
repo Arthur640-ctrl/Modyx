@@ -11,116 +11,11 @@ from models import *
 from motor.motor_asyncio import AsyncIOMotorClient
 from beanie import init_beanie, PydanticObjectId
 
+from generator.services.llm_calls import call_llm
+
 from generator.stream_manager import *
 
 agent_queue = asyncio.Queue(maxsize=20)
-
-MODEL = "qwen/qwen3.5-9b"
-
-client = AsyncOpenAI(
-    base_url="http://localhost:1234/v1",
-    api_key="lm-studio",
-)
-
-async def call_llm(
-    messages: list[dict],
-    *,
-    tools: bool = True,
-    agent_run_id: str = "",
-    stream_as: str = ""
-):
-    kwargs = {
-        "model": MODEL,
-        "messages": messages,
-        "stream": True,
-    }
-
-    if tools:
-        kwargs["tools"] = registry.get_definitions()
-        kwargs["tool_choice"] = "auto"
-
-    response = await client.chat.completions.create(**kwargs)
-
-    await stream_manager.add_message(agent_run_id=agent_run_id, role=stream_as)
-
-    content = ""
-    role = None
-    tool_calls = {}
-
-    async for chunk in response:
-        delta = chunk.choices[0].delta
-
-        # Role
-        if delta.role:
-            role = delta.role
-
-        # Texte
-        if delta.content:
-            await stream_manager.update_content(
-                agent_run_id,
-                delta.content
-            )
-
-            content += delta.content
-
-        # Tool calls
-        if delta.tool_calls:
-            for tool_call in delta.tool_calls:
-
-                await stream_manager.update_tool_call(
-                    agent_run_id,
-                    tool_call.index,
-                    tool_call
-                )
-
-                index = tool_call.index
-
-                if index not in tool_calls:
-                    tool_calls[index] = {
-                        "id": "",
-                        "type": "function",
-                        "function": {
-                            "name": "",
-                            "arguments": ""
-                        }
-                    }
-
-                current = tool_calls[index]
-
-                if tool_call.id:
-                    current["id"] += tool_call.id
-
-                if tool_call.type:
-                    current["type"] = tool_call.type
-
-                if tool_call.function:
-                    if tool_call.function.name:
-                        current["function"]["name"] += tool_call.function.name
-
-                    if tool_call.function.arguments:
-                        current["function"]["arguments"] += tool_call.function.arguments
-
-    # On transforme les tool calls en objets accessibles avec .function.name
-    formatted_tool_calls = []
-
-    for tool_call in tool_calls.values():
-        formatted_tool_calls.append(
-            SimpleNamespace(
-                id=tool_call["id"],
-                type=tool_call["type"],
-                function=SimpleNamespace(
-                    name=tool_call["function"]["name"],
-                    arguments=tool_call["function"]["arguments"]
-                )
-            )
-        )
-
-    # Même type d'utilisation qu'avant
-    return SimpleNamespace(
-        role=role or "assistant",
-        content=content or None,
-        tool_calls=formatted_tool_calls or None
-    )
 
 def assistant_message_to_dict(message) -> dict:
     """
@@ -190,7 +85,14 @@ async def update_agent_run_state(
     agent_run.state = state
     agent_run.updated_at = datetime.utcnow().isoformat()
 
-    await agent_run.save()
+    await AgentRun.find_one(AgentRun.id == agent_run.id).update(
+        {
+            "$set": {
+                "state": state,
+                "updated_at": agent_run.updated_at
+            }
+        }
+    )
 
 async def run_agent(prompt, modpack_id: str, agent_run: AgentRun, assistant_message: Message, history: list[dict]) -> str | None:
 
@@ -939,7 +841,6 @@ async def run_agent(prompt, modpack_id: str, agent_run: AgentRun, assistant_mess
     })
     await agent_run.save()
 
-    # print(f"Content      > {planificator_response}")
 
     # Etape 2 : Lancer le workflow
     while True:
@@ -962,14 +863,12 @@ async def run_agent(prompt, modpack_id: str, agent_run: AgentRun, assistant_mess
 
         await update_agent_run_state(agent_run, "running")
 
-        # print(f"Content      > {agent_response.content}")
 
         # Etape 2B : Si aucun tool calls alors arret du workflow
         if not agent_response.tool_calls:
             break
 
         # Etape 2C : Si tool calls alors execution de ceux ci
-
         await update_agent_run_state(agent_run, "tools_calling")
 
         for tool_call in agent_response.tool_calls:
@@ -981,22 +880,12 @@ async def run_agent(prompt, modpack_id: str, agent_run: AgentRun, assistant_mess
                     tool_call.function.arguments
                 )
             except json.JSONDecodeError as e:
-
-                # print(
-                #     f"ERROR : Arguments JSON invalides pour {tool_name}: "
-                #     f"{e}"
-                # )
-
                 result = {
                     "error": "Invalid JSON arguments",
                     "details": str(e),
                 }
 
             else:
-
-                # print(f"Tools name   > {tool_name}")
-                # print(f"Tools args   > {arguments}")
-
                 try:
 
                     result = await registry.execute(
@@ -1007,13 +896,10 @@ async def run_agent(prompt, modpack_id: str, agent_run: AgentRun, assistant_mess
 
                 except Exception as e:
 
-                    # print(f"ERROR :  Erreur tool : {e}")
 
                     result = {
                         "error": str(e),
                     }
-
-            # print(f"Tools result > {result}")
 
             tool_message = {
                 "role": "tool",
@@ -1072,8 +958,14 @@ async def run_agent(prompt, modpack_id: str, agent_run: AgentRun, assistant_mess
 
     await update_agent_run_state(agent_run, "running")
 
-    agent_run.summary = summary
-    await agent_run.save()
+    await AgentRun.find_one(AgentRun.id == agent_run.id).update(
+        {
+            "$set": {
+                "summary": summary,
+                "updated_at": datetime.utcnow().isoformat()
+            }
+        }
+    )
 
     assistant_message.content = [summary]
     await assistant_message.save()
