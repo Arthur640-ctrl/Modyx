@@ -1,0 +1,165 @@
+.footer {
+  width: 100%;
+  background-color: var(--background-2);
+  border-top: 1px solid var(--border);
+  padding: 60px 0 30px 0;
+  color: var(--text-muted);
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* Grille principale */
+.grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 40px;
+  margin-bottom: 40px;
+}
+
+/* Colonne de Marque */
+.brand_col {
+  display: flex;
+  flex-direction: column;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  font-weight: 800;
+  font-size: 1.25rem;
+  color: var(--text);
+  margin-bottom: 14px;
+}
+
+.brand_icon {
+  color: var(--accent);
+}
+
+.brand_desc {
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: var(--text-muted);
+  max-width: 320px;
+  margin-bottom: 20px;
+}
+
+.socials {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.social_btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: var(--transition);
+}
+
+.social_btn:hover {
+  border-color: var(--accent);
+  background: rgba(115, 160, 79, 0.08);
+  color: var(--accent);
+}
+
+/* Colonnes classiques */
+.col_title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 16px;
+}
+
+.col_list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.col_list a {
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  text-decoration: none;
+  transition: color var(--transition);
+}
+
+.col_list a:hover {
+  color: var(--text);
+}
+
+/* Bandeau Disclaimer Minecraft */
+.disclaimer_bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background-color: var(--background-1);
+  border: 1px solid var(--border);
+  padding: 12px 18px;
+  border-radius: 8px;
+  margin-bottom: 30px;
+}
+
+.disclaimer_icon {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.disclaimer_bar p {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+  margin: 0;
+}
+
+/* Bas du Footer */
+.bottom_bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+/* Responsive Tablette & Mobile */
+@media (max-width: 900px) {
+  .grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+  }
+}
+
+@media (max-width: 550px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .bottom_bar {
+    flex-direction: column;
+    gap: 10px;
+    text-align: center;
+  }
+
+  .disclaimer_bar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
