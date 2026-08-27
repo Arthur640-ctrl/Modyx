@@ -1,5 +1,6 @@
 import json
 import asyncio
+import math
 
 from openai import AsyncOpenAI
 from types import SimpleNamespace
@@ -971,9 +972,60 @@ async def run_agent(prompt, modpack_id: str, agent_run: AgentRun, assistant_mess
     await assistant_message.save()
 
 
+async def finalize_agent_run(user_id: str, agent_run_id: str):
+    # Récupérer les métriques d'utilisation du run
+    try:
+        run_obj_id = PydanticObjectId(agent_run_id)
+    except Exception:
+        return
+
+    usage = await AgentRunUsage.find_one(AgentRunUsage.agent_run_id == run_obj_id)
+    if not usage:
+        return
+
+    # Calculer le coût en USD (ex: barème DeepSeek-V4-Flash)
+    # - Cache Hit : $0.007 / million de tokens
+    # - Cache Miss : $0.44 / million de tokens
+    # - Output : $1.32 / million de tokens
+    cost_usd = (
+        (usage.cache_hit_tokens / 1_000_000 * 0.007) +
+        (usage.cache_miss_tokens / 1_000_000 * 0.44) +
+        (usage.output_tokens / 1_000_000 * 1.32)
+    )
+
+    # Convertir en Euros
+    cost_eur = cost_usd * 0.92
+
+    # Convertir en Crédits (1 crédit = 0,01 €, donc 1 € = 100 crédits)
+    cost_in_credits = math.ceil(cost_eur * 100)
+    
+    # S'assurer de facturer au moins 1 crédit si le run a consommé un minimum
+    if cost_in_credits < 1:
+        cost_in_credits = 1
+
+    # Récupérer l'abonnement/wallet de l'utilisateur et débiter
+    user_sub = await UserSubscription.find_one(UserSubscription.user_id == user_id)
+    if not user_sub:
+        return
+
+    BASE_HOLD = 15
+
+    # On annule le hold temporaire de 15 crédits effectué au démarrage
+    user_sub.credits_balance += BASE_HOLD
+    user_sub.credits_used_this_month -= BASE_HOLD
+
+    # On applique ensuite le coût réel de la requête
+    user_sub.credits_balance = max(0, user_sub.credits_balance - cost_in_credits)
+    user_sub.credits_used_this_month += cost_in_credits
+    
+    user_sub.updated_at = datetime.utcnow().isoformat()
+    await user_sub.save()
+    
+    print(f"[Billing] Run {agent_run_id} finalisé : Coût réel de {cost_in_credits} crédits appliqués (Hold de {BASE_HOLD} remboursé, {cost_eur} dépensé en facture API).")
+
 async def agent_worker():
     while True:
-        prompt, modpack_id, agent_run_id, assistant_message, history = await agent_queue.get()
+        prompt, modpack_id, agent_run_id, assistant_message, history, user_id = await agent_queue.get()
 
         agent_run = None
 
@@ -991,6 +1043,8 @@ async def agent_worker():
                 assistant_message=assistant_message,
                 history=history
             )
+
+            await finalize_agent_run(user_id=user_id, agent_run_id=agent_run_id)
 
             await update_agent_run_state(agent_run, "success")
 

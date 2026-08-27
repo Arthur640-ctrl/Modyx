@@ -97,6 +97,36 @@ class AgentRunUsage(Document):
     class Settings:
         name = "agent_runs_usage"
 
+class SubscriptionPlan(Document):
+    plan_code: str
+    display_name: str
+    price_cents: int
+    monthly_credits_limit: int
+    
+    created_at: str = Field(default_factory=lambda: datetime.utcnow().isoformat())
+    updated_at: str = Field(default_factory=lambda: datetime.utcnow().isoformat())
+
+    class Settings:
+        name = "subscription_plans"
+
+class UserSubscription(Document):
+    user_id: str
+    plan_code: str
+    
+    credits_balance: int = 50
+    credits_used_this_month: int = 0
+
+    reserved: int = 0
+    
+    current_period_start: str = Field(default_factory=lambda: datetime.utcnow().isoformat())
+    current_period_end: str = Field(default_factory=lambda: datetime.utcnow().isoformat())
+    
+    created_at: str = Field(default_factory=lambda: datetime.utcnow().isoformat())
+    updated_at: str = Field(default_factory=lambda: datetime.utcnow().isoformat())
+
+    class Settings:
+        name = "user_subscriptions"
+
 # Requets :
 class RegisterRequest(BaseModel):
     pseudo: str

@@ -30,7 +30,7 @@ async def call_llm(
     tools: bool = True,
     agent_run_id: str = "",
     stream_as: str = "",
-    verbose: bool = True
+    verbose: bool = False
 ):
     kwargs = {
         "model": MODEL,

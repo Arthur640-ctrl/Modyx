@@ -101,6 +101,17 @@ async def register(request: Request, data: RegisterRequest):
 
     await user.insert()
 
+    free_plan = await SubscriptionPlan.find_one(SubscriptionPlan.plan_code == "free")
+
+    user_sub = UserSubscription(
+        user_id=user.id,
+        plan_code="free",
+        credits_balance=free_plan.monthly_credits_limit,
+        credits_used_this_month=0
+    )
+
+    await user_sub.insert()
+
     token = create_access_token(str(user.id))
     
     return {
