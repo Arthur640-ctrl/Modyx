@@ -102,6 +102,8 @@ class SubscriptionPlan(Document):
     display_name: str
     price_cents: int
     monthly_credits_limit: int
+
+    product_id: str
     
     created_at: str = Field(default_factory=lambda: datetime.utcnow().isoformat())
     updated_at: str = Field(default_factory=lambda: datetime.utcnow().isoformat())
@@ -116,7 +118,7 @@ class UserSubscription(Document):
     credits_balance: int = 50
     credits_used_this_month: int = 0
 
-    reserved: int = 0
+    credits_reserved: int = 0
     
     current_period_start: str = Field(default_factory=lambda: datetime.utcnow().isoformat())
     current_period_end: str = Field(default_factory=lambda: datetime.utcnow().isoformat())

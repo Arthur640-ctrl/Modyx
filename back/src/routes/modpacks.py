@@ -166,7 +166,7 @@ async def modpack_chat(
     if not user_sub:
         raise HTTPException(status_code=403, detail="Aucun abonnement trouvé.")
 
-    MIN_CREDITS_REQUIRED = 15 
+    MIN_CREDITS_REQUIRED = 2 
     
     if user_sub.credits_balance < MIN_CREDITS_REQUIRED:
         raise HTTPException(
@@ -180,6 +180,7 @@ async def modpack_chat(
     user_sub.credits_balance -= MIN_CREDITS_REQUIRED
     user_sub.credits_used_this_month += MIN_CREDITS_REQUIRED
     user_sub.updated_at = datetime.utcnow().isoformat()
+    user_sub.credits_reserved += MIN_CREDITS_REQUIRED
     await user_sub.save()
 
     # Check de la queue avant de tout créer et initialiser

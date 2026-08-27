@@ -31,6 +31,26 @@
     padding: 0 4px;
 }
 
+.tokenBalance {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 9px;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    background: var(--input-bg);
+    color: var(--accent);
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.tokenBalance:hover {
+    border-color: var(--accent);
+    background: rgba(115, 160, 79, 0.1);
+}
+
 .logo {
     font-size: 22px;
     font-weight: 800;
@@ -82,11 +102,56 @@
     transform: scale(0.97);
 }
 
+.changePlanButton:hover {
+    background: var(--accent-hover);
+    color: var(--text);
+}
+
 .sidebarNav {
     flex: 1;
     display: flex;
     flex-direction: column;
     gap: 6px;
+}
+
+.usageCard {
+    padding: 14px 4px 18px;
+}
+
+.usageHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    color: var(--text-muted);
+    font-size: 12px;
+}
+
+.usageHeader strong {
+    color: var(--text);
+    font-size: 13px;
+}
+
+.usageTrack {
+    width: 100%;
+    height: 6px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.usageProgress {
+    height: 100%;
+    border-radius: inherit;
+    background: var(--accent);
+    transition: width 0.3s ease;
+}
+
+.usageDetails {
+    display: block;
+    margin-top: 7px;
+    color: var(--text-muted);
+    font-size: 11px;
 }
 
 .navItem {
@@ -169,6 +234,27 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+.accountPlan {
+    margin-top: 2px;
+    color: var(--accent);
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.changePlanButton {
+    width: 100%;
+    margin-top: 10px;
+    padding: 9px 12px;
+    border: 1px solid var(--accent);
+    border-radius: 9px;
+    background: transparent;
+    color: var(--accent);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
 }
 
 .logoutBtn {

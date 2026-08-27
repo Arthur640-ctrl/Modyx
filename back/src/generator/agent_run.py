@@ -1008,7 +1008,7 @@ async def finalize_agent_run(user_id: str, agent_run_id: str):
     if not user_sub:
         return
 
-    BASE_HOLD = 15
+    BASE_HOLD = 2
 
     # On annule le hold temporaire de 15 crédits effectué au démarrage
     user_sub.credits_balance += BASE_HOLD
@@ -1017,6 +1017,7 @@ async def finalize_agent_run(user_id: str, agent_run_id: str):
     # On applique ensuite le coût réel de la requête
     user_sub.credits_balance = max(0, user_sub.credits_balance - cost_in_credits)
     user_sub.credits_used_this_month += cost_in_credits
+    user_sub.credits_reserved -= BASE_HOLD
     
     user_sub.updated_at = datetime.utcnow().isoformat()
     await user_sub.save()
