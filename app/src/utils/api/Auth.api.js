@@ -1,10 +1,4 @@
 import { API_URL } from "./api"
-import {
-    Routes,
-    Route,
-    Navigate
-} from "react-router-dom"
-
 export async function register(pseudo, email, password) {
 
     const data = {
@@ -48,6 +42,73 @@ export async function register(pseudo, email, password) {
                 "register_checkbox": "",
                 "form": error
             }
+        }
+    }
+}
+
+export async function verify_email(user_id, code) {
+    try {
+        const response = await fetch(`${API_URL}/auth/verify-email`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                user_id,
+                code
+            })
+        })
+
+        const response_data = await response.json()
+
+        if (response.ok && response_data.error === "not") {
+            return {
+                success: true,
+                data: response_data.data
+            }
+        }
+
+        return {
+            success: false,
+            error: response_data.detail?.message || "Code de vérification invalide"
+        }
+    } catch (error) {
+        return {
+            success: false,
+            error: error.message || "Network error"
+        }
+    }
+}
+
+export async function resend_verification(user_id) {
+    try {
+        const response = await fetch(`${API_URL}/auth/resend-verification`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ user_id })
+        })
+
+        const response_data = await response.json()
+
+        if (response.ok && response_data.error === "not") {
+            return {
+                success: true,
+                data: response_data.data
+            }
+        }
+
+        return {
+            success: false,
+            error: response_data.detail?.message || "Impossible de renvoyer le code",
+            retry_after: response_data.detail?.retry_after || 0
+        }
+    } catch (error) {
+        return {
+            success: false,
+            error: error.message || "Network error",
+            retry_after: 0
         }
     }
 }

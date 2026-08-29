@@ -51,6 +51,86 @@
     background: rgba(115, 160, 79, 0.1);
 }
 
+.tooltipContainer {
+    position: relative;
+}
+
+.tooltip {
+    position: absolute;
+    bottom: calc(100% + 8px);
+    z-index: 20;
+    width: min(230px, calc(100vw - 32px));
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--background-1);
+    color: var(--text);
+    font-size: 11px;
+    font-weight: 400;
+    line-height: 1.4;
+    white-space: normal;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--transition), transform var(--transition);
+}
+
+.balanceTooltip {
+    top: calc(100% + 8px);
+    right: 0;
+    bottom: auto;
+    transform: translateY(4px);
+}
+
+.usageTooltip {
+    left: 0;
+    transform: translateY(4px);
+}
+
+.balanceTooltip::after {
+    top: -4px;
+    right: 10px;
+    border-top: 1px solid var(--border);
+    border-left: 1px solid var(--border);
+    border-right: 0;
+    border-bottom: 0;
+}
+
+.usageTooltip::after {
+    left: 12px;
+}
+
+.tooltip::after {
+    position: absolute;
+    top: 100%;
+    width: 7px;
+    height: 7px;
+    border-right: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    background: var(--background-1);
+    content: "";
+    transform: translateY(-4px) rotate(45deg);
+}
+
+.balanceTooltip::after {
+    top: -4px;
+    right: 10px;
+    border-top: 1px solid var(--border);
+    border-left: 1px solid var(--border);
+    border-right: 0;
+    border-bottom: 0;
+    transform: rotate(45deg);
+}
+
+.tooltipContainer:hover > .tooltip,
+.tooltipContainer:focus-within > .tooltip {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.usageHeader > .tooltipContainer {
+    display: inline-flex;
+}
+
 .logo {
     font-size: 22px;
     font-weight: 800;

@@ -1,5 +1,6 @@
 import {
     ChevronDown,
+    ExternalLink,
     FolderOpen,
     MoreHorizontal,
     PencilLine,
@@ -32,6 +33,7 @@ export default function Editor() {
     const [stream_messages, set_stream_messages] = useState([])
     const [stream_user_message, set_stream_user_message] = useState(null)
     const [is_streaming, set_is_streaming] = useState(false)
+    const [credits_error, set_credits_error] = useState(null)
 
     function scroll_chat_to_bottom(force = false) {
         const chat_messages = chat_messages_ref.current
@@ -138,6 +140,9 @@ export default function Editor() {
             console.error("Failed to send prompt:", result.error)
             set_stream_user_message(null)
             set_is_streaming(false)
+            if (result.status === 402 || result.error?.error === 402) {
+                set_credits_error(result.error)
+            }
             return
         }
 
@@ -174,6 +179,36 @@ export default function Editor() {
         }
     }
 
+    function open_pricing() {
+        const pricing_url = "http://localhost:3000/pricing"
+        const user_id = localStorage.getItem("modyx_user_id")
+        const url = user_id
+            ? `${pricing_url}?user_id=${encodeURIComponent(user_id)}`
+            : pricing_url
+
+        if (window.modyx?.openExternal) {
+            window.modyx.openExternal(url).catch((error) => {
+                console.error("Impossible d'ouvrir la page des plans :", error)
+            })
+            return
+        }
+
+        window.open(url, "_blank", "noopener,noreferrer")
+    }
+
+    function format_retry_date(value) {
+        if (!value) return "la prochaine période de facturation"
+
+        const date = new Date(value)
+        if (Number.isNaN(date.getTime())) return "la prochaine période de facturation"
+
+        return date.toLocaleDateString("fr-FR", {
+            day: "numeric",
+            month: "long",
+            year: "numeric"
+        })
+    }
+
     function handle_prompt_change(e) {
         const textarea = e.target
 
@@ -200,6 +235,27 @@ export default function Editor() {
 
     return (
         <div className={styles.editor_screen}>
+
+            {credits_error && (
+                <div className={styles.credit_modal_backdrop} role="presentation">
+                    <section className={styles.credit_modal} role="dialog" aria-modal="true" aria-labelledby="credit-modal-title">
+                        <h2 id="credit-modal-title">Crédits insuffisants</h2>
+                        <p>
+                            Vous n'avez plus assez de crédits pour lancer l'assistant.
+                            Vous pouvez upgrader votre plan ou attendre le renouvellement du
+                            {` ${format_retry_date(credits_error.retry_at)}.`}
+                        </p>
+                        <div className={styles.credit_modal_actions}>
+                            <button type="button" className={styles.credit_upgrade_button} onClick={open_pricing}>
+                                Upgrader mon plan <ExternalLink size={16} />
+                            </button>
+                            <button type="button" className={styles.credit_close_button} onClick={() => set_credits_error(null)}>
+                                Fermer
+                            </button>
+                        </div>
+                    </section>
+                </div>
+            )}
 
             <div>
                 <div className={styles.header}>

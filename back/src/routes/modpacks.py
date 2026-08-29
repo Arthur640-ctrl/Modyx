@@ -10,6 +10,7 @@ from utils.minecraft_versions import *
 from fastapi.responses import StreamingResponse
 import json
 from generator.stream_manager import *
+from core.credits import *
 
 router = APIRouter(prefix="/modpacks")
 
@@ -160,29 +161,6 @@ async def modpack_chat(
             }
         )
 
-    # Check de l'abonnement
-    user_sub = await UserSubscription.find_one(UserSubscription.user_id == user.id)
-    
-    if not user_sub:
-        raise HTTPException(status_code=403, detail="Aucun abonnement trouvé.")
-
-    MIN_CREDITS_REQUIRED = 2 
-    
-    if user_sub.credits_balance < MIN_CREDITS_REQUIRED:
-        raise HTTPException(
-            status_code=402,
-            detail={
-                "error": 402,
-                "message": f"Crédits insuffisants. Il vous faut au moins {MIN_CREDITS_REQUIRED} crédits pour lancer l'assistant."
-            }
-        )
-
-    user_sub.credits_balance -= MIN_CREDITS_REQUIRED
-    user_sub.credits_used_this_month += MIN_CREDITS_REQUIRED
-    user_sub.updated_at = datetime.utcnow().isoformat()
-    user_sub.credits_reserved += MIN_CREDITS_REQUIRED
-    await user_sub.save()
-
     # Check de la queue avant de tout créer et initialiser
     if agent_queue.full():
         raise HTTPException(
@@ -190,6 +168,23 @@ async def modpack_chat(
             detail={
                 "error": 503,
                 "message": "Too many agent tasks queued"
+            }
+        )
+
+    # Check de l'abonnement    
+    MIN_CREDITS_REQUIRED = 2 
+
+    credits_reserved = await remove_credits(
+        amount=MIN_CREDITS_REQUIRED,
+        user=user
+    )
+
+    if not credits_reserved:
+        raise HTTPException(
+            status_code=402,
+            detail={
+                "error": 402,
+                "message": f"Crédits insuffisants. Il vous faut au moins {MIN_CREDITS_REQUIRED} crédits pour lancer l'assistant."
             }
         )
 

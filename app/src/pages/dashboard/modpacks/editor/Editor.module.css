@@ -10,6 +10,73 @@
     flex-direction: column;
 }
 
+.credit_modal_backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 30;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.68);
+}
+
+.credit_modal {
+    width: min(440px, 100%);
+    padding: 26px;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: var(--background-2);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+}
+
+.credit_modal h2 {
+    color: var(--text);
+    font-size: 20px;
+}
+
+.credit_modal p {
+    margin-top: 12px;
+    color: var(--text-muted);
+    line-height: 1.5;
+}
+
+.credit_modal_actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 22px;
+}
+
+.credit_upgrade_button,
+.credit_close_button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding: 10px 13px;
+    border-radius: 9px;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.credit_upgrade_button {
+    border: 0;
+    background: var(--accent);
+    color: var(--text);
+}
+
+.credit_upgrade_button:hover {
+    background: var(--accent-hover);
+}
+
+.credit_close_button {
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-muted);
+}
+
 /* Header */
 .header {
     display: flex;

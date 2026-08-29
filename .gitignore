@@ -23,3 +23,5 @@ back/src/generator/llm/tools/__pycache__/get_pack_mods.cpython-313.pyc
 back/src/generator/llm/tools/__pycache__/get_pack_version.cpython-313.pyc
 back/src/generator/llm/tools/__pycache__/search_mods.cpython-313.pyc
 back/src/generator/services/__pycache__/modrinth.cpython-313.pyc
+back/.env
+back/.env.local

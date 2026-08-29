@@ -18,3 +18,4 @@ else:
 MONGO_URI = os.getenv("MONGO_URI")
 MONGO_NAME = os.getenv("MONGO_NAME")
 JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
+RESEND_API_KEY = os.getenv("RESEND_API_KEY")

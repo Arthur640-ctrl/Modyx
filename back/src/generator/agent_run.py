@@ -11,6 +11,7 @@ from generator.llm.tools.get_pack_mods import *
 from models import *
 from motor.motor_asyncio import AsyncIOMotorClient
 from beanie import init_beanie, PydanticObjectId
+from core.credits import *
 
 from generator.services.llm_calls import call_llm
 
@@ -1003,26 +1004,43 @@ async def finalize_agent_run(user_id: str, agent_run_id: str):
     if cost_in_credits < 1:
         cost_in_credits = 1
 
-    # Récupérer l'abonnement/wallet de l'utilisateur et débiter
-    user_sub = await UserSubscription.find_one(UserSubscription.user_id == user_id)
-    if not user_sub:
-        return
+    # get user
+    user = await User.find_one(User.id == user_id)
 
     BASE_HOLD = 2
 
-    # On annule le hold temporaire de 15 crédits effectué au démarrage
-    user_sub.credits_balance += BASE_HOLD
-    user_sub.credits_used_this_month -= BASE_HOLD
+    # Rembourser 
+    hold_refunded = await add_credits(
+        amount=BASE_HOLD,
+        user=user
+    )
 
-    # On applique ensuite le coût réel de la requête
-    user_sub.credits_balance = max(0, user_sub.credits_balance - cost_in_credits)
-    user_sub.credits_used_this_month += cost_in_credits
-    user_sub.credits_reserved -= BASE_HOLD
-    
-    user_sub.updated_at = datetime.utcnow().isoformat()
-    await user_sub.save()
-    
-    print(f"[Billing] Run {agent_run_id} finalisé : Coût réel de {cost_in_credits} crédits appliqués (Hold de {BASE_HOLD} remboursé, {cost_eur} dépensé en facture API).")
+    if not hold_refunded:
+        print(
+            f"[Billing] Impossible de rembourser le hold "
+            f"pour le run {agent_run_id}"
+        )
+        return
+
+    # Deduire
+    credits_charged = await remove_credits(
+        amount=cost_in_credits,
+        user=user
+    )
+
+    if not credits_charged:
+        print(
+            f"[Billing] Impossible de facturer "
+            f"{cost_in_credits} crédits pour le run {agent_run_id}"
+        )
+        return
+
+    print(
+        f"[Billing] Run {agent_run_id} finalisé : "
+        f"{cost_in_credits} crédits facturés "
+        f"(hold de {BASE_HOLD} remboursé, "
+        f"coût API : ${cost_usd:.6f} / €{cost_eur:.6f})"
+    )
 
 async def agent_worker():
     while True:

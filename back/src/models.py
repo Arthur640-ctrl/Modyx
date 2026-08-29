@@ -15,6 +15,12 @@ class User(Document):
     email: EmailStr
     password: str
 
+    email_verified: bool = False
+    email_verification_code: str | None = None
+    email_verification_expires_at: datetime | None = None
+    email_verification_attempts: int = 0
+    email_verification_last_sent_at: datetime | None = None
+
     created_at : str = Field(default_factory=lambda: datetime.utcnow().isoformat())
     updated_at : str = Field(default_factory=lambda: datetime.utcnow().isoformat())
 
@@ -104,6 +110,7 @@ class SubscriptionPlan(Document):
     monthly_credits_limit: int
 
     product_id: str
+    variant_id: str
     
     created_at: str = Field(default_factory=lambda: datetime.utcnow().isoformat())
     updated_at: str = Field(default_factory=lambda: datetime.utcnow().isoformat())
@@ -114,11 +121,10 @@ class SubscriptionPlan(Document):
 class UserSubscription(Document):
     user_id: str
     plan_code: str
-    
-    credits_balance: int = 50
-    credits_used_this_month: int = 0
 
-    credits_reserved: int = 0
+    credits_added: int = 0 # Credits ajouté via les pack bundle
+    
+    credits_balance_this_month: int = 50 # Credits restant sur le total de credits du plan ce mois ci
     
     current_period_start: str = Field(default_factory=lambda: datetime.utcnow().isoformat())
     current_period_end: str = Field(default_factory=lambda: datetime.utcnow().isoformat())
@@ -143,6 +149,13 @@ class LoginRequest(BaseModel):
     password : str
 
     bot : str | None = None
+
+class VerifyEmailRequest(BaseModel):
+    user_id: str
+    code: str = Field(min_length=6, max_length=6)
+
+class ResendVerificationRequest(BaseModel):
+    user_id: str
 
 class NewModpackRequest(BaseModel):
     name: str

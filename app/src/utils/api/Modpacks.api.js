@@ -204,6 +204,7 @@ export async function send_modpack_chat(prompt, modpack_id) {
         if (!response.ok) {
             return {
                 success: false,
+                status: response.status,
                 error: response_data.detail || "Failed to send message",
                 data: null
             }
