@@ -96,7 +96,11 @@ class AgentRunUsage(Document):
     cache_miss_tokens: int = 0
     output_tokens: int = 0
     total_tokens: int = 0
-    
+
+    model_id: str = ""
+
+    run_price: float = 0
+            
     created_at : str = Field(default_factory=lambda: datetime.utcnow().isoformat())
     updated_at : str = Field(default_factory=lambda: datetime.utcnow().isoformat())
 
@@ -134,6 +138,32 @@ class UserSubscription(Document):
 
     class Settings:
         name = "user_subscriptions"
+
+class Model(BaseModel):
+    model_id: str
+    cache_hit_pricing: float
+    cache_miss_pricing: float
+    output_pricing: float
+
+    usable: bool = True
+    last_unusable_at: datetime | None = None
+
+class Provider(Document):
+    provider_id: str
+    provider_type: str
+
+    provider_url: str
+
+    api_keys: list[str]
+
+    models: list[Model]
+
+    priority: int
+
+    reachable: bool = True
+    class Settings:
+        name = "providers"
+
 
 # Requets :
 class RegisterRequest(BaseModel):

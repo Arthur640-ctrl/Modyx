@@ -8,6 +8,7 @@ from database import connect_db
 import config
 from generator.llm.tools import register_tools
 from generator.agent_run import *
+from generator.services.llm_router import router
 
 # Routers
 from routes import auth, account, modpacks, utils, global_route
@@ -24,10 +25,18 @@ async def lifespan(app: FastAPI):
         for _ in range(2)
     ]
 
+    router_task = asyncio.create_task(
+        router.start()
+    )
+
+    print("API started.")
+
     yield
 
     for worker in workers:
         worker.cancel()
+
+    router_task.cancel()
 
     await asyncio.gather(
         *workers,

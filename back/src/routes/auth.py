@@ -214,6 +214,7 @@ async def login(request: Request, data: LoginRequest):
             "error": "not",
             "message": "Login success",
             "data": {
+                "access_token": token,
                 "user_id": str(user.id),
                 "email": user.email
             } 

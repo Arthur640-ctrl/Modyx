@@ -984,23 +984,42 @@ async def finalize_agent_run(user_id: str, agent_run_id: str):
     if not usage:
         return
 
-    # Calculer le coût en USD (ex: barème DeepSeek-V4-Flash)
-    # - Cache Hit : $0.007 / million de tokens
-    # - Cache Miss : $0.44 / million de tokens
-    # - Output : $1.32 / million de tokens
+    # Récupérer le modele et ses prix
+    model_id = usage.model_id
+
+    providers = await Provider.find(
+        Provider.reachable == True
+    ).to_list()
+
+    model = None
+
+    for provider in providers:
+        for provider_model in provider.models:
+            if provider_model.model_id == model_id:
+                model = provider_model
+                break
+
+        if model:
+            break
+
+    if not model:
+        print(
+            f"[Billing] Modèle introuvable : {model_id}"
+        )
+        return
+
+    # Calcul du cout api en usd
     cost_usd = (
-        (usage.cache_hit_tokens / 1_000_000 * 0.007) +
-        (usage.cache_miss_tokens / 1_000_000 * 0.44) +
-        (usage.output_tokens / 1_000_000 * 1.32)
+        (usage.cache_hit_tokens / 1_000_000 * model.cache_hit_pricing)
+        + (usage.cache_miss_tokens / 1_000_000 * model.cache_miss_pricing)
+        + (usage.output_tokens / 1_000_000 * model.output_pricing)
     )
 
-    # Convertir en Euros
+    # Conversion en credit
     cost_eur = cost_usd * 0.92
 
-    # Convertir en Crédits (1 crédit = 0,01 €, donc 1 € = 100 crédits)
     cost_in_credits = math.ceil(cost_eur * 100)
     
-    # S'assurer de facturer au moins 1 crédit si le run a consommé un minimum
     if cost_in_credits < 1:
         cost_in_credits = 1
 
