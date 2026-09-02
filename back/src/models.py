@@ -195,3 +195,8 @@ class NewModpackRequest(BaseModel):
 class ChatModpackRequest(BaseModel):
     prompt: str
     modpack_id: str
+
+class ModpackModRequest(BaseModel):
+    mod_id: str
+    version_id: str | None = None
+    title: str | None = None

@@ -175,6 +175,146 @@ export async function get_modpack(modpack_id) {
     }
 }
 
+export async function search_modrinth_projects(query, limit = 20) {
+    const token = localStorage.getItem("modyx_token")
+
+    if (!token) {
+        return {
+            success: false,
+            error: "No token found",
+            data: null
+        }
+    }
+
+    const clean_query = encodeURIComponent(query.trim())
+
+    try {
+        const response = await fetch(`${API_URL}/utils/mods/search?query=${clean_query}&limit=${limit}`, {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`
+            }
+        })
+
+        const response_data = await response.json()
+
+        if (!response.ok) {
+            return {
+                success: false,
+                error: response_data.detail || "Failed to search mods",
+                data: null
+            }
+        }
+
+        return {
+            success: true,
+            data: response_data
+        }
+    } catch (error) {
+        return {
+            success: false,
+            error: error.message || "Network error",
+            data: null
+        }
+    }
+}
+
+export async function add_mod_to_modpack(modpack_id, mod_id, version_id = null, title = "") {
+    const token = localStorage.getItem("modyx_token")
+
+    if (!token) {
+        return {
+            success: false,
+            error: "No token found",
+            data: null
+        }
+    }
+
+    try {
+        const response = await fetch(`${API_URL}/modpacks/${modpack_id}/mods`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                mod_id: mod_id,
+                version_id: version_id,
+                title: title
+            })
+        })
+
+        const response_data = await response.json()
+
+        if (!response.ok) {
+            return {
+                success: false,
+                error: response_data.detail || "Failed to add mod",
+                data: null
+            }
+        }
+
+        return {
+            success: true,
+            data: response_data.data
+        }
+    } catch (error) {
+        return {
+            success: false,
+            error: error.message || "Network error",
+            data: null
+        }
+    }
+}
+
+export async function remove_mod_from_modpack(modpack_id, mod_id, version_id = null) {
+    const token = localStorage.getItem("modyx_token")
+
+    if (!token) {
+        return {
+            success: false,
+            error: "No token found",
+            data: null
+        }
+    }
+
+    try {
+        const response = await fetch(`${API_URL}/modpacks/${modpack_id}/mods`, {
+            method: "DELETE",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                mod_id: mod_id,
+                version_id: version_id
+            })
+        })
+
+        const response_data = await response.json()
+
+        if (!response.ok) {
+            return {
+                success: false,
+                error: response_data.detail || "Failed to remove mod",
+                data: null
+            }
+        }
+
+        return {
+            success: true,
+            data: response_data.data
+        }
+    } catch (error) {
+        return {
+            success: false,
+            error: error.message || "Network error",
+            data: null
+        }
+    }
+}
+
 export async function send_modpack_chat(prompt, modpack_id) {
     const token = localStorage.getItem("modyx_token")
 

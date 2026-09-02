@@ -102,6 +102,312 @@
     display: flex;
     flex: 1;
     min-height: 0;
+    gap: 20px;
+}
+
+.sidebar_container {
+    width: 340px;
+    min-width: 340px;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    background: var(--background-2);
+    overflow: hidden;
+    box-sizing: border-box;
+}
+
+.sidebar_tabs {
+    display: flex;
+    gap: 8px;
+    padding: 10px 10px 0;
+    border-bottom: 1px solid var(--border);
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.sidebar_tab,
+.sidebar_tab_active {
+    flex: 1;
+    border: 1px solid transparent;
+    border-radius: 10px 10px 0 0;
+    background: transparent;
+    color: var(--text-muted);
+    font: inherit;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 10px 12px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.sidebar_tab:hover {
+    color: var(--text);
+    border-color: var(--border);
+}
+
+.sidebar_tab_active {
+    color: var(--text);
+    background: rgba(255, 255, 255, 0.04);
+    border-color: var(--border);
+    border-bottom-color: transparent;
+}
+
+.mod_list_panel {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    padding: 14px;
+    gap: 14px;
+}
+
+.mod_search_wrapper {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.mod_search_field {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.mod_search_icon {
+    color: var(--text-muted);
+    flex-shrink: 0;
+}
+
+.mod_search_input {
+    flex: 1;
+    min-width: 0;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font: inherit;
+    font-size: 13px;
+}
+
+.add_mod_button {
+    width: 38px;
+    height: 38px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border);
+    background: var(--accent);
+    color: var(--text);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: filter 0.15s ease, transform 0.15s ease;
+}
+
+.add_mod_button:hover {
+    filter: brightness(1.05);
+}
+
+.add_mod_button:active {
+    transform: scale(0.98);
+}
+
+.mod_search_input::placeholder {
+    color: var(--text-muted);
+}
+
+.mod_list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow-y: auto;
+    min-height: 0;
+    padding-right: 4px;
+}
+
+.mod_row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 10px 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.02);
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.mod_row:hover {
+    border-color: rgba(115, 160, 79, 0.65);
+    background: rgba(115, 160, 79, 0.06);
+}
+
+.mod_identity {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.mod_name {
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.3;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.mod_id {
+    color: var(--text-muted);
+    font-size: 11px;
+    line-height: 1.3;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.delete_mod_button {
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.03);
+    color: var(--text-muted);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.delete_mod_button:hover {
+    border-color: rgba(255, 94, 94, 0.45);
+    background: rgba(255, 94, 94, 0.08);
+    color: #ffb4b4;
+}
+
+.empty_mod_state,
+.empty_tab_state {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 16px;
+    text-align: center;
+    border: 1px dashed var(--border);
+    border-radius: 12px;
+    color: var(--text-muted);
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.empty_tab_state {
+    flex: 1;
+    margin: 14px;
+}
+
+.mod_modal_backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 30;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.7);
+}
+
+.mod_modal {
+    width: min(560px, 100%);
+    max-height: min(80vh, 720px);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 18px;
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    background: var(--background-2);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.42);
+}
+
+.mod_modal_header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.mod_modal_header h2 {
+    margin: 0;
+    color: var(--text);
+    font-size: 20px;
+}
+
+.mod_modal_close_button {
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-muted);
+    border-radius: 8px;
+    padding: 8px 10px;
+    font: inherit;
+    cursor: pointer;
+}
+
+.mod_modal_search_wrapper {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.mod_modal_list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow-y: auto;
+    min-height: 120px;
+    max-height: 420px;
+    padding-right: 4px;
+}
+
+.mod_modal_item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.mod_modal_identity {
+    display: flex;
+    flex: 1;
+    min-width: 0;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.mod_modal_add_button {
+    border: 1px solid rgba(115, 160, 79, 0.5);
+    background: rgba(115, 160, 79, 0.12);
+    color: var(--text);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
 }
 
 .chat_container {
@@ -125,8 +431,8 @@
     padding: 12px;
     padding-bottom: 90px;
 
-    padding-left: 20%;
-    padding-right: 20%;
+    padding-left: 5%;
+    padding-right: 5%;
 }
 
 .chat_messages::-webkit-scrollbar {

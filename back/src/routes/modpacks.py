@@ -11,6 +11,7 @@ from fastapi.responses import StreamingResponse
 import json
 from generator.stream_manager import *
 from core.credits import *
+from generator.services.modrinth import get_project, list_project_versions
 
 router = APIRouter(prefix="/modpacks")
 
@@ -62,6 +63,55 @@ async def modpacks_get(
         response.append(data)
 
     return response
+
+async def get_modpack_access_context(modpack_id: str, user: User):
+    try:
+        modpack_id_obj = PydanticObjectId(modpack_id)
+    except Exception:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error": 400,
+                "message": "Invalid modpack ID"
+            }
+        )
+
+    modpack = await Modpack.find_one(
+        Modpack.id == modpack_id_obj
+    )
+
+    if not modpack:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "error": 404,
+                "message": "Modpack not found"
+            }
+        )
+
+    if modpack.owner_id != user.id and user.id not in modpack.shared_ids:
+        raise HTTPException(
+            status_code=403,
+            detail={
+                "error": 403,
+                "message": "You do not have permission to access this modpack"
+            }
+        )
+
+    modpack_state = await ModpackState.find_one(
+        ModpackState.modpack_id == modpack.id
+    )
+
+    if not modpack_state:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "error": 404,
+                "message": "Modpack state not found"
+            }
+        )
+
+    return modpack, modpack_state
 
 @router.post("/new")
 async def modpack_new(
@@ -307,6 +357,147 @@ async def modpack_chat(
             "modpack_id": str(modpack.id),
             "agent_run": str(agent_run.id),
             "state": agent_run.state
+        }
+    }
+
+@router.post("/{modpack_id}/mods")
+async def modpack_add_mod(
+    modpack_id: str,
+    data: ModpackModRequest,
+    request: Request,
+    user: User = Depends(get_current_user)
+):
+    modpack, modpack_state = await get_modpack_access_context(modpack_id, user)
+
+    clean_mod_id = (data.mod_id or "").strip()
+    if not clean_mod_id:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error": 400,
+                "message": "Missing mod_id"
+            }
+        )
+
+    version_id = (data.version_id or "").strip()
+
+    if not version_id:
+        try:
+            versions = await list_project_versions(
+                clean_mod_id,
+                loader=modpack_state.loader,
+                game_version=modpack_state.minecraft_version,
+                featured=True,
+                include_changelog=False,
+            )
+        except Exception:
+            versions = []
+
+        if not versions:
+            raise HTTPException(
+                status_code=404,
+                detail={
+                    "error": 404,
+                    "message": "No compatible version found for this mod"
+                }
+            )
+
+        version_id = versions[0].get("id")
+
+    if not version_id:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error": 400,
+                "message": "Missing version_id"
+            }
+        )
+
+    try:
+        mod_info = await get_project(clean_mod_id)
+    except Exception:
+        mod_info = {}
+
+    mod_record = {
+        "mod_id": clean_mod_id,
+        "version_id": version_id,
+        "title": (data.title or mod_info.get("title") or mod_info.get("name") or clean_mod_id)
+    }
+
+    for existing_mod in modpack_state.mods:
+        if existing_mod.get("mod_id") == clean_mod_id and existing_mod.get("version_id") == version_id:
+            return {
+                "error": None,
+                "message": "Mod already in modpack",
+                "data": {
+                    "mod": existing_mod
+                }
+            }
+
+    modpack_state.mods.append(mod_record)
+    modpack_state.updated_at = datetime.utcnow().isoformat()
+    await modpack_state.save()
+
+    return {
+        "error": None,
+        "message": "Mod added to modpack",
+        "data": {
+            "mod": mod_record
+        }
+    }
+
+@router.delete("/{modpack_id}/mods")
+async def modpack_remove_mod(
+    modpack_id: str,
+    data: ModpackModRequest,
+    request: Request,
+    user: User = Depends(get_current_user)
+):
+    modpack, modpack_state = await get_modpack_access_context(modpack_id, user)
+
+    clean_mod_id = (data.mod_id or "").strip()
+    if not clean_mod_id:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error": 400,
+                "message": "Missing mod_id"
+            }
+        )
+
+    version_id = (data.version_id or "").strip()
+
+    filtered_mods = []
+    removed_mod = None
+
+    for existing_mod in modpack_state.mods:
+        same_id = existing_mod.get("mod_id") == clean_mod_id
+        same_version = existing_mod.get("version_id") == version_id if version_id else True
+
+        if same_id and same_version:
+            removed_mod = existing_mod
+            continue
+
+        filtered_mods.append(existing_mod)
+
+    if removed_mod is None:
+        return {
+            "error": None,
+            "message": "Mod not found in modpack",
+            "data": {
+                "mod": None
+            }
+        }
+
+    modpack_state.mods = filtered_mods
+    modpack_state.updated_at = datetime.utcnow().isoformat()
+    await modpack_state.save()
+
+    return {
+        "error": None,
+        "message": "Mod removed from modpack",
+        "data": {
+            "mod": removed_mod
         }
     }
 
