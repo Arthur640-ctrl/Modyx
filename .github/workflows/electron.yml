@@ -54,4 +54,4 @@ jobs:
         working-directory: app
         env:
           GH_TOKEN: ${{ secrets.MODYX_RELEASE_TOKEN }}
-        run: npm run build:win -- --publish always
+        run: npx electron-builder --win --publish always
