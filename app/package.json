@@ -53,6 +53,8 @@
   "build": {
     "appId": "com.gleeze.modyx",
     "productName": "Modyx",
+    "description": "Modyx",
+    "author": "Arthur640-ctrl",
 
     "directories": {
       "output": "dist-electron"
