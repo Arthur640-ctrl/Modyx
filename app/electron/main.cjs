@@ -10,6 +10,10 @@ const { autoUpdater } = require("electron-updater");
 
 const isDev = !app.isPackaged;
 
+console.log("🔥 MAIN.CJS CHARGE");
+console.log("🔥 VERSION :", app.getVersion());
+console.log("🔥 PACKAGED :", app.isPackaged);
+
 ipcMain.handle("open-external", async (_event, url) => {
     const parsedUrl = new URL(url);
 
