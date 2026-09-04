@@ -30,10 +30,11 @@ jobs:
 
     steps:
 
-      # 1. Récupérer le code du repo
+      # 1. Récupérer le code du repo avec les droits d'écriture
       - name: Checkout repository
         uses: actions/checkout@v4
-
+        with:
+          token: ${{ secrets.MODYX_RELEASE_TOKEN }}
 
       # 2. Installer Node.js
       - name: Setup Node.js
@@ -43,21 +44,20 @@ jobs:
           cache: npm
           cache-dependency-path: app/package-lock.json
 
-
       # 3. Installer les dépendances
       - name: Install dependencies
         working-directory: app
         run: npm ci
 
-      # 3.5. Créer et pousser le tag Git automatiquement basé sur le package.json
+      # 3.5. Créer et pousser le tag Git proprement
       - name: Create Git Tag
         working-directory: app
         run: |
           $version = node -p "require('./package.json').version"
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git tag "v$version"
-          git push origin "v$version"
+          git push origin "v$version" --force
         shell: pwsh
 
       # 4. Construire et publier Electron
