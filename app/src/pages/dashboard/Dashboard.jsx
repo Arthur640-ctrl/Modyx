@@ -75,7 +75,7 @@ export default function Dashboard() {
             {/* Header */}
             <div className={styles.sidebarHeader}>
             <h1 className={styles.logo}>
-                MOD<span className={styles.logoAccent}>YXXXXXXX</span>
+                MOD<span className={styles.logoAccent}>YX</span>
             </h1>
             <div className={styles.tooltipContainer}>
                 <button
