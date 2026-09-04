@@ -49,6 +49,17 @@ jobs:
         working-directory: app
         run: npm ci
 
+      # 3.5. Créer et pousser le tag Git automatiquement basé sur le package.json
+      - name: Create Git Tag
+        working-directory: app
+        run: |
+          $version = node -p "require('./package.json').version"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag "v$version"
+          git push origin "v$version"
+        shell: pwsh
+
       # 4. Construire et publier Electron
       - name: Build and publish Windows
         working-directory: app
