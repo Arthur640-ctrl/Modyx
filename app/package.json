@@ -98,7 +98,8 @@
       {
         "provider": "github",
         "owner": "Arthur640-ctrl",
-        "repo": "Modyx-Releases"
+        "repo": "Modyx-Releases",
+        "releaseType": "release"
       }
     ]
   }

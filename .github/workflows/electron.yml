@@ -49,20 +49,6 @@ jobs:
         working-directory: app
         run: npm ci
 
-      - name: Check release token
-        working-directory: app
-        shell: pwsh
-        env:
-          GH_TOKEN: ${{ secrets.MODYX_RELEASE_TOKEN }}
-        run: |
-          if ([string]::IsNullOrEmpty($env:GH_TOKEN)) {
-            Write-Error "MODYX_RELEASE_TOKEN n'est pas configuré."
-            exit 1
-          }
-
-          Write-Host "MODYX_RELEASE_TOKEN est bien disponible."
-
-
       # 4. Construire et publier Electron
       - name: Build and publish Windows
         working-directory: app
