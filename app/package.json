@@ -4,7 +4,7 @@
   "description": "Modyx",
   "author": "Arthur640-ctrl",
   "private": true,
-  "version": "1.0.3",
+  "version": "0.0.0",
   "main": "electron/main.cjs",
   "type": "module",
 
