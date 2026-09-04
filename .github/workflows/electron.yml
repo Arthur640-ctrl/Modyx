@@ -1,3 +1,4 @@
+```yaml
 name: Build App
 
 on:
@@ -7,14 +8,14 @@ on:
 
   workflow_dispatch:
 
-# Empêche deux releases de se construire
-# simultanément avec le même numéro.
+# Un seul release à la fois.
 concurrency:
   group: modyx-release
   cancel-in-progress: false
 
 permissions:
   contents: read
+
 
 jobs:
 
@@ -27,7 +28,7 @@ jobs:
     steps:
 
       # ============================================================
-      # 1. RÉCUPÉRER LE CODE
+      # 1. CHECKOUT
       # ============================================================
 
       - name: Checkout repository
@@ -35,7 +36,7 @@ jobs:
 
 
       # ============================================================
-      # 2. INSTALLER NODE.JS
+      # 2. NODE.JS
       # ============================================================
 
       - name: Setup Node.js
@@ -65,17 +66,20 @@ jobs:
             const fs = require("fs");
 
 
-            // --------------------------------------------------------
-            // Repository cible
-            // --------------------------------------------------------
+            // ========================================================
+            // CONFIGURATION
+            // ========================================================
 
-            const [owner, repo] =
+            const [
+              owner,
+              repo
+            ] =
               process.env.RELEASE_REPO.split("/");
 
 
-            // --------------------------------------------------------
-            // Lire package.json
-            // --------------------------------------------------------
+            // ========================================================
+            // VERSION DU package.json
+            // ========================================================
 
             const packageJson =
               JSON.parse(
@@ -95,9 +99,9 @@ jobs:
             );
 
 
-            // --------------------------------------------------------
-            // Parser une version
-            // --------------------------------------------------------
+            // ========================================================
+            // PARSER VERSION
+            // ========================================================
 
             function parseVersion(version) {
 
@@ -113,9 +117,7 @@ jobs:
 
               if (!match) {
 
-                throw new Error(
-                  `Version invalide : ${version}`
-                );
+                return null;
 
               }
 
@@ -131,9 +133,9 @@ jobs:
             }
 
 
-            // --------------------------------------------------------
-            // Comparer deux versions
-            // --------------------------------------------------------
+            // ========================================================
+            // COMPARER
+            // ========================================================
 
             function compareVersions(a, b) {
 
@@ -156,9 +158,9 @@ jobs:
             }
 
 
-            // --------------------------------------------------------
-            // +1 patch
-            // --------------------------------------------------------
+            // ========================================================
+            // +1 PATCH
+            // ========================================================
 
             function incrementPatch(version) {
 
@@ -173,31 +175,25 @@ jobs:
             }
 
 
-            // --------------------------------------------------------
-            // Version → texte
-            // --------------------------------------------------------
+            // ========================================================
+            // STRING
+            // ========================================================
 
             function versionToString(version) {
 
-              return `${version.major}.${version.minor}.${version.patch}`;
+              return (
+                `${version.major}.${version.minor}.${version.patch}`
+              );
 
             }
 
 
             // ========================================================
-            // VERSION INITIALE
+            // VERSION DE BASE
             // ========================================================
 
             let nextVersion;
 
-
-            /*
-             * 0.0.0 signifie :
-             *
-             * "aucune version de production définie"
-             *
-             * La première release est donc 1.0.0.
-             */
 
             if (sourceVersion === "0.0.0") {
 
@@ -211,82 +207,146 @@ jobs:
 
             } else {
 
+              const parsedSource =
+                parseVersion(sourceVersion);
+
+
+              if (!parsedSource) {
+
+                throw new Error(
+                  `Version source invalide : ${sourceVersion}`
+                );
+
+              }
+
+
               nextVersion =
                 incrementPatch(
-                  parseVersion(sourceVersion)
+                  parsedSource
                 );
 
             }
 
 
             // ========================================================
-            // REGARDER LA DERNIÈRE RELEASE PUBLIÉE
+            // RÉCUPÉRER TOUTES LES RELEASES
             // ========================================================
 
-            try {
+            console.log(
+              "Recherche de toutes les releases..."
+            );
 
-              const { data } =
-                await github.rest.repos.getLatestRelease({
+
+            let releases = [];
+
+
+            for (let page = 1; page <= 10; page++) {
+
+              const {
+                data
+              } =
+                await github.rest.repos.listReleases({
 
                   owner,
-                  repo
+                  repo,
+
+                  per_page: 100,
+
+                  page
 
                 });
 
 
-              const latestVersion =
-                parseVersion(
-                  data.tag_name
-                );
+              if (data.length === 0) {
+
+                break;
+
+              }
 
 
-              console.log(
-                `Dernier release : ${versionToString(latestVersion)}`
+              releases.push(
+                ...data
               );
 
 
-              const releaseCandidate =
-                incrementPatch(
-                  latestVersion
+              if (data.length < 100) {
+
+                break;
+
+              }
+
+            }
+
+
+            console.log(
+              `Releases trouvées : ${releases.length}`
+            );
+
+
+            // ========================================================
+            // TROUVER LA VERSION MAXIMALE
+            // ========================================================
+
+            let highestRelease = null;
+
+
+            for (const release of releases) {
+
+              const parsed =
+                parseVersion(
+                  release.tag_name
                 );
 
 
-              /*
-               * On prend toujours le numéro le plus élevé
-               * entre package.json et la dernière release.
-               */
+              if (!parsed) {
+
+                continue;
+
+              }
+
+
+              console.log(
+                `Release trouvée : ${release.tag_name}`
+              );
+
+
+              if (
+                highestRelease === null ||
+                compareVersions(
+                  parsed,
+                  highestRelease
+                ) > 0
+              ) {
+
+                highestRelease =
+                  parsed;
+
+              }
+
+            }
+
+
+            // ========================================================
+            // CALCUL FINAL
+            // ========================================================
+
+            if (highestRelease !== null) {
+
+              const candidate =
+                incrementPatch(
+                  highestRelease
+                );
+
 
               if (
                 compareVersions(
-                  releaseCandidate,
+                  candidate,
                   nextVersion
                 ) > 0
               ) {
 
                 nextVersion =
-                  releaseCandidate;
-
-              }
-
-
-            } catch (error) {
-
-              /*
-               * 404 = aucune release publiée.
-               *
-               * C'est parfaitement normal pour la
-               * toute première release.
-               */
-
-              if (error.status === 404) {
-
-                console.log(
-                  "Aucun release existant."
-                );
-
-              } else {
-
-                throw error;
+                  candidate;
 
               }
 
@@ -294,7 +354,7 @@ jobs:
 
 
             // ========================================================
-            // VERSION FINALE
+            // RÉSULTAT
             // ========================================================
 
             const versionString =
@@ -304,7 +364,15 @@ jobs:
 
 
             console.log(
+              "========================================"
+            );
+
+            console.log(
               `Prochaine version : ${versionString}`
+            );
+
+            console.log(
+              "========================================"
             );
 
 
@@ -315,7 +383,7 @@ jobs:
 
 
       # ============================================================
-      # 4. METTRE LA VERSION DANS package.json
+      # 4. MODIFIER package.json DANS LE RUNNER
       # ============================================================
 
       - name: Set application version
@@ -357,11 +425,11 @@ jobs:
 
 
       # ============================================================
-      # 7. CRÉER LE TAG DANS Modyx-Releases
+      # 7. CRÉER TAG + RELEASE AVANT ELECTRON-BUILDER
       # ============================================================
 
-      - name: Create release tag
-        id: tag
+      - name: Prepare GitHub release
+        id: release
         uses: actions/github-script@v7
 
         env:
@@ -374,22 +442,32 @@ jobs:
 
           script: |
 
-            const [owner, repo] =
+            const [
+              owner,
+              repo
+            ] =
               process.env.RELEASE_REPO.split("/");
 
 
+            const version =
+              process.env.VERSION;
+
+
             const tag =
-              `v${process.env.VERSION}`;
+              `v${version}`;
 
 
             console.log(
-              `Tag demandé : ${tag}`
+              `Préparation de ${tag}`
             );
 
 
-            // --------------------------------------------------------
-            // Vérifier si le tag existe déjà
-            // --------------------------------------------------------
+            // ========================================================
+            // VÉRIFIER SI LE TAG EXISTE
+            // ========================================================
+
+            let tagExists = false;
+
 
             try {
 
@@ -397,26 +475,18 @@ jobs:
 
                 owner,
                 repo,
+
                 ref: `tags/${tag}`
 
               });
 
 
-              /*
-               * Le tag existe déjà.
-               *
-               * Ça arrive notamment si un workflow précédent
-               * a planté APRÈS avoir créé le tag.
-               *
-               * Ce n'est PAS une erreur.
-               */
+              tagExists = true;
+
 
               console.log(
                 `Le tag ${tag} existe déjà.`
               );
-
-
-              return;
 
             } catch (error) {
 
@@ -429,74 +499,160 @@ jobs:
             }
 
 
-            // --------------------------------------------------------
-            // Récupérer la branche principale du repo release
-            // --------------------------------------------------------
+            // ========================================================
+            // CRÉER LE TAG SI NÉCESSAIRE
+            // ========================================================
 
-            const {
-              data: repository
-            } =
-              await github.rest.repos.get({
+            if (!tagExists) {
 
-                owner,
-                repo
+              const {
+                data: repository
+              } =
+                await github.rest.repos.get({
 
-              });
+                  owner,
+                  repo
 
-
-            const defaultBranch =
-              repository.default_branch;
+                });
 
 
-            // --------------------------------------------------------
-            // Récupérer le commit actuel
-            // --------------------------------------------------------
+              const defaultBranch =
+                repository.default_branch;
 
-            const {
-              data: branch
-            } =
-              await github.rest.repos.getBranch({
+
+              const {
+                data: branch
+              } =
+                await github.rest.repos.getBranch({
+
+                  owner,
+                  repo,
+
+                  branch: defaultBranch
+
+                });
+
+
+              const sha =
+                branch.commit.sha;
+
+
+              console.log(
+                `Création du tag ${tag} sur ${sha}`
+              );
+
+
+              await github.rest.git.createRef({
 
                 owner,
                 repo,
 
-                branch: defaultBranch
+                ref: `refs/tags/${tag}`,
+
+                sha
 
               });
 
 
-            const sha =
-              branch.commit.sha;
+              console.log(
+                `Tag ${tag} créé.`
+              );
+
+            }
 
 
-            console.log(
-              `Commit cible : ${sha}`
-            );
+            // ========================================================
+            // VÉRIFIER SI LA RELEASE EXISTE
+            // ========================================================
+
+            let releaseExists = false;
 
 
-            // --------------------------------------------------------
-            // Créer le tag
-            // --------------------------------------------------------
+            try {
 
-            await github.rest.git.createRef({
+              const {
+                data: existingRelease
+              } =
+                await github.rest.repos.getReleaseByTag({
 
-              owner,
-              repo,
+                  owner,
+                  repo,
 
-              ref: `refs/tags/${tag}`,
+                  tag
 
-              sha
-
-            });
+                });
 
 
-            console.log(
-              `Tag ${tag} créé avec succès.`
-            );
+              releaseExists = true;
+
+
+              console.log(
+                `La release ${tag} existe déjà.`
+              );
+
+
+              console.log(
+                `Release ID : ${existingRelease.id}`
+              );
+
+            } catch (error) {
+
+              if (error.status !== 404) {
+
+                throw error;
+
+              }
+
+            }
+
+
+            // ========================================================
+            // CRÉER LA RELEASE SI NÉCESSAIRE
+            // ========================================================
+
+            if (!releaseExists) {
+
+              console.log(
+                `Création de la release ${tag}...`
+              );
+
+
+              const {
+                data: createdRelease
+              } =
+                await github.rest.repos.createRelease({
+
+                  owner,
+                  repo,
+
+                  tag_name: tag,
+
+                  name: version,
+
+                  body:
+                    `Modyx ${version}`,
+
+                  draft: false,
+
+                  prerelease: false
+
+                });
+
+
+              console.log(
+                `Release créée avec succès.`
+              );
+
+
+              console.log(
+                `Release ID : ${createdRelease.id}`
+              );
+
+            }
 
 
       # ============================================================
-      # 8. BUILD ELECTRON + PUBLICATION GITHUB
+      # 8. ELECTRON-BUILDER
       # ============================================================
 
       - name: Build and publish Windows
@@ -508,3 +664,4 @@ jobs:
         run: |
 
           npx electron-builder --win --publish always
+```
