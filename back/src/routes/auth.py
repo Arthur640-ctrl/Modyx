@@ -11,6 +11,7 @@ from core.auth_security import *
 
 router = APIRouter(prefix="/auth")
 EMAIL_REGEX = re.compile(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$")
+EMAIL_VERIFICATION = False
 
 @router.post("/register")
 @limiter.limit("5/minute")
@@ -101,39 +102,40 @@ async def register(request: Request, data: RegisterRequest):
         password=hashed_password
     )
 
-    # Ajout de la verification
-    verification_code = f"{secrets.randbelow(1_000_000):06d}"
+    user.email_verified = not EMAIL_VERIFICATION
 
-    user.email_verification_code = verification_code
-    user.email_verification_expires_at = (
-        datetime.now(timezone.utc) + timedelta(minutes=10)
-    )
-    user.email_verification_attempts = 0
-    user.email_verification_last_sent_at = datetime.now(timezone.utc)
+    if EMAIL_VERIFICATION:
+        # Ajout de la verification
+        verification_code = f"{secrets.randbelow(1_000_000):06d}"
 
-    email_sent = await send_verification_code(
-        email=user.email,
-        code=verification_code
-    )
-
-    if not email_sent:
-        await user.delete()
-
-        raise HTTPException(
-            status_code=500,
-            detail={
-                "error": 500,
-                "message": "Unable to send the verification email.",
-                "displayed_errors": {
-                    "email": "",
-                    "pseudo": "",
-                    "password": "",
-                    "password_confirm": "",
-                    "register_checkbox": "",
-                    "form": "Impossible d'envoyer le code de confirmation, verifiez l'email."
-                }
-            }
+        user.email_verification_code = verification_code
+        user.email_verification_expires_at = (
+            datetime.now(timezone.utc) + timedelta(minutes=10)
         )
+        user.email_verification_attempts = 0
+        user.email_verification_last_sent_at = datetime.now(timezone.utc)
+
+        email_sent = await send_verification_code(
+            email=user.email,
+            code=verification_code
+        )
+
+        if not email_sent:
+            raise HTTPException(
+                status_code=500,
+                detail={
+                    "error": 500,
+                    "message": "Unable to send the verification email.",
+                    "displayed_errors": {
+                        "email": "",
+                        "pseudo": "",
+                        "password": "",
+                        "password_confirm": "",
+                        "register_checkbox": "",
+                        "form": "Impossible d'envoyer le code de confirmation, verifiez l'email."
+                    }
+                }
+            )
 
     await user.insert()
 
@@ -149,12 +151,17 @@ async def register(request: Request, data: RegisterRequest):
 
     await user_sub.insert()
     
+    response_data = {
+        "user_id": str(user.id),
+    }
+
+    if not EMAIL_VERIFICATION:
+        response_data["access_token"] = create_access_token(str(user.id))
+
     return {
         "error": "not",
         "message": "Register success",
-        "data": {
-            "user_id": str(user.id),
-        } 
+        "data": response_data
     }
 
 @router.post("/login")

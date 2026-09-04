@@ -8,6 +8,10 @@ from models import *
 import asyncio
 import httpx
 
+USE_LM_STUDIO = True
+LM_STUDIO_URL = "http://127.0.0.1:1234/v1"
+LM_STUDIO_API_KEY = "lm-studio"
+
 class LLM_Router:
 
     def __init__(self, interval_seconds: int = 60):
@@ -54,11 +58,15 @@ class LLM_Router:
         await provider.save()
 
     async def get_available_models(self):
+        local_models = await self.get_lm_studio_models()
+
         providers = await Provider.find(
             Provider.reachable == True
         ).to_list()
 
         models = []
+
+        models.extend(local_models)
 
         for provider in providers:
             for model in provider.models:
@@ -95,5 +103,37 @@ class LLM_Router:
         )
 
         return models
+
+    async def get_lm_studio_models(self):
+        if not USE_LM_STUDIO:
+            return []
+
+        try:
+            async with httpx.AsyncClient(timeout=10) as client:
+                response = await client.get(
+                    LM_STUDIO_URL.rstrip("/") + "/models"
+                )
+                response.raise_for_status()
+                model_data = response.json().get("data", [])
+        except (httpx.RequestError, httpx.HTTPStatusError, ValueError) as error:
+            print(f"[LLM] LM Studio unavailable: {error}")
+            return []
+
+        return [
+            {
+                "model_id": model["id"],
+                "api_key": LM_STUDIO_API_KEY,
+                "provider_url": LM_STUDIO_URL,
+                "provider_priority": -1,
+                "price": 0,
+                "last_unusable_at": None,
+                "provider": None,
+                "model": None,
+                "is_local": True,
+                "provider_id": "lm-studio",
+            }
+            for model in model_data
+            if model.get("id")
+        ]
 
 router = LLM_Router()

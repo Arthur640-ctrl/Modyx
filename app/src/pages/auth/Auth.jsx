@@ -4,6 +4,8 @@ import { useNavigate } from "react-router-dom"
 import { register, login, verify_email, resend_verification } from "../../utils/api/Auth.api"
 import { getAccount } from "../../utils/api/Account.api"
 
+const EMAIL_VERIFICATION = true
+
 export default function Auth() {
     const navigate = useNavigate()
 
@@ -123,9 +125,15 @@ export default function Auth() {
         const response = await register(pseudo, email, password)
 
         if (response.success === true) {
-            set_verification_user_id(response.data.user_id)
-            set_verification_code("")
-            set_verification_error("")
+            if (EMAIL_VERIFICATION && !response.data.access_token) {
+                set_verification_user_id(response.data.user_id)
+                set_verification_code("")
+                set_verification_error("")
+            } else {
+                localStorage.setItem("modyx_token", response.data.access_token)
+                localStorage.setItem("modyx_user_id", response.data.user_id)
+                navigate("/dashboard", { replace: true })
+            }
         } else {
             set_errors(response.display_errors || {
                 email: "",

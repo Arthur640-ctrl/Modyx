@@ -3,7 +3,12 @@ import react from '@vitejs/plugin-react'
 import path from 'path'
 
 export default defineConfig({
+  // Important pour Electron en production :
+  // les assets seront chargés avec ./assets/... au lieu de /assets/...
+  base: './',
+
   plugins: [react()],
+
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
@@ -17,24 +22,33 @@ export default defineConfig({
       '@assets': path.resolve(__dirname, './src/assets'),
     },
   },
+
   build: {
     sourcemap: true,
+
     rollupOptions: {
       output: {
         manualChunks: (id) => {
           if (id.includes('node_modules')) {
-            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
+            if (
+              id.includes('react') ||
+              id.includes('react-dom') ||
+              id.includes('react-router')
+            ) {
               return 'vendor'
             }
+
             if (id.includes('lucide-react')) {
               return 'ui'
             }
+
             return 'vendor'
           }
         },
       },
     },
   },
+
   server: {
     port: 5173,
     strictPort: true,

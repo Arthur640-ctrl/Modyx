@@ -39,6 +39,9 @@ async def call_llm(
 
         provider = model_info["provider"]
         model = model_info["model"]
+        provider_id = model_info.get("provider_id")
+        if not provider_id:
+            provider_id = provider.provider_id
 
         client = AsyncOpenAI(
             base_url=provider_url,
@@ -80,7 +83,7 @@ async def call_llm(
 
             print(
                 f"[LLM] trying "
-                f"provider={provider.provider_id} "
+                f"provider={provider_id} "
                 f"model={model_id}"
             )
 
@@ -263,7 +266,7 @@ async def call_llm(
             if verbose:
                 print(
                     f"[LLM] success "
-                    f"provider={provider.provider_id} "
+                    f"provider={provider_id} "
                     f"model={model_id} "
                     f"prompt_tokens="
                     f"{usage_metrics['prompt_tokens_raw']:,}"
@@ -282,7 +285,7 @@ async def call_llm(
 
             print(
                 f"[LLM] generation failed "
-                f"provider={provider.provider_id} "
+                f"provider={provider_id} "
                 f"model={model_id}: {e}"
             )
 
@@ -290,11 +293,12 @@ async def call_llm(
             # MODEL UNUSABLE
             # =========================
 
-            await router.set_model_usable(
-                provider,
-                model,
-                False
-            )
+            if not model_info.get("is_local", False):
+                await router.set_model_usable(
+                    provider,
+                    model,
+                    False
+                )
 
             await client.close()
 

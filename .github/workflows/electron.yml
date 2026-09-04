@@ -1,0 +1,58 @@
+name: Build App
+
+# ============================================================
+# QUAND EST-CE QUE LE WORKFLOW SE LANCE ?
+# ============================================================
+
+on:
+  push:
+    branches:
+      - "prod"
+
+
+# ============================================================
+# PERMISSIONS
+# ============================================================
+
+permissions:
+  contents: write
+
+
+# ============================================================
+# JOBS
+# ============================================================
+
+jobs:
+
+  build-windows:
+    name: Build Windows
+    runs-on: windows-latest
+
+    steps:
+
+      # 1. Récupérer le code du repo
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+
+      # 2. Installer Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+
+      # 3. Installer les dépendances
+      - name: Install dependencies
+        working-directory: app
+        run: npm ci
+
+
+      # 4. Construire et publier Electron
+      - name: Build and publish Windows
+        working-directory: app
+        env:
+          GH_TOKEN: ${{ secrets.MODYX_RELEASE_TOKEN }}
+        run: npm run build:win -- --publish always
