@@ -8,6 +8,7 @@ import { getAccount } from "./utils/api/Account.api"
 import Home from "./pages/dashboard/home/Home.jsx"
 import Modpacks from "./pages/dashboard/modpacks/Modpacks.jsx"
 import Editor from "./pages/dashboard/modpacks/editor/Editor.jsx"
+import UpdateNotification from "./components/UpdateNotification.jsx"
 
 
 function ProtectedDashboardLayout() {
@@ -26,7 +27,7 @@ function ProtectedDashboardLayout() {
     }, [])
 
     if (isChecking) return <div>Chargement...</div>
-    if (!isAuthenticated) return <Navigate to="/" replace />
+    if (!isAuthenticated) return <Navigate to='/' replace />
 
     // Structure des routes enfants
     return (
@@ -37,22 +38,60 @@ function ProtectedDashboardLayout() {
 }
 
 export default function App() {
-    return (
-        <Routes>
-            <Route path="/" element={<Auth />} />
-            
-            <Route path="/dashboard" element={<ProtectedDashboardLayout />}>
-                
-                {/* /dashboard redirige vers /dashboard/home */}
-                <Route index element={<Navigate to="home" replace />} />
-                
-                <Route path="home" element={<Home />} />
-                <Route path="modpacks" element={<Modpacks />} />
-                <Route path="modpacks/editor" element={<Editor />} />
-                 
-            </Route>
+    const [update, set_update] = useState(null)
 
-            <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+    useEffect(() => {
+        const unsubscribe = window.modyx?.onUpdateState?.((nextUpdate) => {
+            set_update(nextUpdate)
+        })
+
+        return () => {
+            unsubscribe?.()
+        }
+    }, [])
+
+    const installUpdate = async () => {
+        if (!window.modyx?.installUpdate) {
+            return
+        }
+
+        set_update((current) => (
+            current
+                ? { ...current, status: "installing" }
+                : current
+        ))
+
+        try {
+            await window.modyx.installUpdate()
+        } catch (error) {
+            console.error("Impossible d'installer la mise à jour :", error)
+            set_update((current) => (
+                current
+                    ? { ...current, status: "downloaded" }
+                    : current
+            ))
+        }
+    }
+
+    return (
+        <>
+            <Routes>
+                <Route path='/' element={<Auth />} />
+
+                <Route path='/dashboard' element={<ProtectedDashboardLayout />}>
+
+                    {/* /dashboard redirige vers /dashboard/home */}
+                    <Route index element={<Navigate to='home' replace />} />
+
+                    <Route path='home' element={<Home />} />
+                    <Route path='modpacks' element={<Modpacks />} />
+                    <Route path='modpacks/editor' element={<Editor />} />
+
+                </Route>
+
+                <Route path='*' element={<Navigate to='/' replace />} />
+            </Routes>
+            <UpdateNotification update={update} onInstall={installUpdate} />
+        </>
     )
 }

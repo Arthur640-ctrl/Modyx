@@ -1,0 +1,91 @@
+.notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 100;
+    display: flex;
+    gap: 14px;
+    width: min(390px, calc(100vw - 40px));
+    padding: 16px;
+    border: 1px solid rgba(115, 160, 79, 0.55);
+    border-radius: 14px;
+    background: rgba(23, 27, 30, 0.97);
+    box-shadow: 0 14px 36px var(--shadow);
+}
+
+.icon {
+    display: flex;
+    align-items: flex-start;
+    padding-top: 2px;
+    color: var(--accent);
+}
+
+.content {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.content strong {
+    font-size: 14px;
+}
+
+.content p {
+    color: var(--text-muted);
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+.content small {
+    color: var(--text-muted);
+    font-size: 11px;
+}
+
+.progressTrack {
+    height: 6px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.progressTrack span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: var(--accent);
+    transition: width var(--transition) ease;
+}
+
+.installButton {
+    align-self: flex-start;
+    margin-top: 4px;
+    padding: 9px 12px;
+    border: 0;
+    border-radius: 8px;
+    background: var(--accent);
+    color: var(--text);
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 700;
+    transition: background var(--transition);
+}
+
+.installButton:hover:not(:disabled) {
+    background: var(--accent-hover);
+}
+
+.installButton:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.spinning {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}

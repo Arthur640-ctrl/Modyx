@@ -12,6 +12,14 @@ const {
     autoUpdater
 } = require("electron-updater");
 
+let mainWindow = null;
+let updateState = {
+    status: "idle",
+    version: null,
+    percent: 0
+};
+let installRequested = false;
+
 
 // ============================================================
 // CONFIGURATION
@@ -120,13 +128,54 @@ ipcMain.handle(
     }
 );
 
+ipcMain.handle(
+    "install-update",
+    () => {
+        if (
+            updateState.status !== "downloaded" ||
+            installRequested
+        ) {
+            return false;
+        }
+
+        installRequested = true;
+        setUpdateState(
+            "installing"
+        );
+
+        log(
+            "[Updater] Installation demandée par l'utilisateur."
+        );
+        log(
+            "[Updater] Appel de quitAndInstall(true, true)..."
+        );
+
+        try {
+            autoUpdater.quitAndInstall(
+                true,
+                true
+            );
+        } catch (error) {
+            installRequested = false;
+            setUpdateState(
+                "downloaded"
+            );
+            log(
+                `[Updater] ERREUR installation : ${error?.message || error}`
+            );
+            throw error;
+        }
+
+        return true;
+    }
+);
+
 
 // ============================================================
 // FENÊTRE PRINCIPALE
 // ============================================================
 
 function createWindow() {
-
     const win =
         new BrowserWindow({
 
@@ -150,6 +199,33 @@ function createWindow() {
             }
 
         });
+
+    mainWindow = win;
+
+    win.webContents.on(
+        "did-finish-load",
+        () => {
+            if (
+                updateState.status !== "idle"
+            ) {
+                win.webContents.send(
+                    "update-state",
+                    updateState
+                );
+            }
+        }
+    );
+
+    win.on(
+        "closed",
+        () => {
+            if (
+                mainWindow === win
+            ) {
+                mainWindow = null;
+            }
+        }
+    );
 
 
     // --------------------------------------------------------
@@ -198,6 +274,31 @@ function createWindow() {
 
 }
 
+function sendUpdateEvent(channel, payload) {
+    if (
+        mainWindow &&
+        !mainWindow.isDestroyed()
+    ) {
+        mainWindow.webContents.send(
+            channel,
+            payload
+        );
+    }
+}
+
+function setUpdateState(status, details = {}) {
+    updateState = {
+        ...updateState,
+        ...details,
+        status
+    };
+
+    sendUpdateEvent(
+        "update-state",
+        updateState
+    );
+}
+
 
 // ============================================================
 // AUTO UPDATER
@@ -238,6 +339,13 @@ function setupAutoUpdater() {
         "checking-for-update",
         () => {
 
+            setUpdateState(
+                "checking",
+                {
+                    percent: 0
+                }
+            );
+
             log(
                 "[Updater] Recherche de mise à jour..."
             );
@@ -253,6 +361,20 @@ function setupAutoUpdater() {
     autoUpdater.on(
         "update-available",
         (info) => {
+
+            setUpdateState(
+                "downloading",
+                {
+                    version: info.version,
+                    percent: 0
+                }
+            );
+            sendUpdateEvent(
+                "update-available",
+                {
+                    version: info.version
+                }
+            );
 
             log(
                 `[Updater] Mise à jour disponible : ${info.version}`
@@ -270,6 +392,14 @@ function setupAutoUpdater() {
         "update-not-available",
         (info) => {
 
+            setUpdateState(
+                "idle",
+                {
+                    version: null,
+                    percent: 0
+                }
+            );
+
             log(
                 `[Updater] Modyx est à jour. Version distante : ${info.version}`
             );
@@ -285,6 +415,19 @@ function setupAutoUpdater() {
     autoUpdater.on(
         "download-progress",
         (progress) => {
+
+            setUpdateState(
+                "downloading",
+                {
+                    percent: Math.round(progress.percent)
+                }
+            );
+            sendUpdateEvent(
+                "update-progress",
+                {
+                    percent: Math.round(progress.percent)
+                }
+            );
 
             log(
                 `[Updater] Téléchargement : ${Math.round(progress.percent)}%`
@@ -302,66 +445,26 @@ function setupAutoUpdater() {
         "update-downloaded",
         (info) => {
 
+            setUpdateState(
+                "downloaded",
+                {
+                    version: info.version,
+                    percent: 100
+                }
+            );
+            sendUpdateEvent(
+                "update-downloaded",
+                {
+                    version: info.version
+                }
+            );
+
             log(
                 `[Updater] Mise à jour téléchargée : ${info.version}`
             );
 
-
             log(
-                "[Updater] Installation immédiate..."
-            );
-
-
-            // Petit délai pour garantir que
-            // tous les handles/fichiers sont libérés.
-            setTimeout(
-                () => {
-
-                    try {
-
-                        log(
-                            "[Updater] Fermeture de Modyx et lancement de l'installeur..."
-                        );
-
-
-                        /*
-                         * electron-updater 6.x
-                         *
-                         * quitAndInstall(
-                         *     isSilent,
-                         *     isForceRunAfter
-                         * )
-                         *
-                         * true  = installation silencieuse
-                         * true  = relancer Modyx après
-                         *
-                         */
-
-                        autoUpdater.quitAndInstall(
-                            true,
-                            true
-                        );
-
-
-                    } catch (error) {
-
-                        log(
-                            `[Updater] ERREUR installation : ${error?.message || error}`
-                        );
-
-
-                        if (error?.stack) {
-
-                            log(
-                                `[Updater] Stack : ${error.stack}`
-                            );
-
-                        }
-
-                    }
-
-                },
-                1000
+                "[Updater] En attente de confirmation utilisateur..."
             );
 
         }
@@ -375,6 +478,14 @@ function setupAutoUpdater() {
     autoUpdater.on(
         "error",
         (error) => {
+
+            setUpdateState(
+                "idle",
+                {
+                    version: null,
+                    percent: 0
+                }
+            );
 
             log(
                 `[Updater] ERREUR : ${error?.message || error}`
