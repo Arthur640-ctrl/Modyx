@@ -1,42 +1,22 @@
 name: Build App
 
-# ============================================================
-# QUAND EST-CE QUE LE WORKFLOW SE LANCE ?
-# ============================================================
-
 on:
   push:
     branches:
       - "prod"
 
-
-# ============================================================
-# PERMISSIONS
-# ============================================================
-
 permissions:
   contents: write
 
-
-# ============================================================
-# JOBS
-# ============================================================
-
 jobs:
-
   build-windows:
     name: Build Windows
     runs-on: windows-latest
 
     steps:
-
-      # 1. Récupérer le code du repo avec les droits d'écriture
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.MODYX_RELEASE_TOKEN }}
 
-      # 2. Installer Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -44,26 +24,10 @@ jobs:
           cache: npm
           cache-dependency-path: app/package-lock.json
 
-      # 3. Installer les dépendances
       - name: Install dependencies
         working-directory: app
         run: npm ci
 
-      # 3.5. Créer et pousser le tag Git proprement
-      - name: Create Git Tag
-        working-directory: app
-        env:
-          GH_TOKEN: ${{ secrets.MODYX_RELEASE_TOKEN }}
-        run: |
-          $version = node -p "require('./package.json').version"
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git remote set-url origin https://x-access-token:${env:GH_TOKEN}@github.com/Arthur640-ctrl/Modyx-Releases.git
-          git tag "v$version"
-          git push origin "v$version" --force
-        shell: pwsh
-
-      # 4. Construire et publier Electron
       - name: Build and publish Windows
         working-directory: app
         env:
