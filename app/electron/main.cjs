@@ -17,12 +17,15 @@ const {
 // CONFIGURATION
 // ============================================================
 
-const isDev = !app.isPackaged;
+const isDev =
+    !app.isPackaged;
 
-const logFile = path.join(
-    app.getPath("userData"),
-    "modyx.log"
-);
+
+const logFile =
+    path.join(
+        app.getPath("userData"),
+        "modyx.log"
+    );
 
 
 // ============================================================
@@ -52,6 +55,7 @@ function log(message) {
         );
 
     }
+
 }
 
 
@@ -64,14 +68,12 @@ log("Modyx démarrage");
 log(`Version : ${app.getVersion()}`);
 log(`Packaged : ${app.isPackaged}`);
 log(`Mode : ${isDev ? "development" : "production"}`);
-log(`Executable : ${process.execPath}`);
-log(`AppPath : ${app.getAppPath()}`);
 log(`UserData : ${app.getPath("userData")}`);
 log("========================================");
 
 
 // ============================================================
-// IPC — LIENS EXTERNES
+// IPC — OUVERTURE DE LIENS EXTERNES
 // ============================================================
 
 ipcMain.handle(
@@ -82,7 +84,8 @@ ipcMain.handle(
 
         try {
 
-            parsedUrl = new URL(url);
+            parsedUrl =
+                new URL(url);
 
         } catch {
 
@@ -94,7 +97,10 @@ ipcMain.handle(
 
 
         if (
-            !["http:", "https:"].includes(
+            ![
+                "http:",
+                "https:"
+            ].includes(
                 parsedUrl.protocol
             ) ||
             parsedUrl.pathname !== "/pricing"
@@ -121,26 +127,29 @@ ipcMain.handle(
 
 function createWindow() {
 
-    const win = new BrowserWindow({
+    const win =
+        new BrowserWindow({
 
-        width: 1200,
-        height: 800,
+            width: 1200,
+            height: 800,
 
-        autoHideMenuBar: true,
+            autoHideMenuBar: true,
 
-        webPreferences: {
+            webPreferences: {
 
-            contextIsolation: true,
-            nodeIntegration: false,
+                contextIsolation: true,
 
-            preload: path.join(
-                __dirname,
-                "preload.cjs"
-            )
+                nodeIntegration: false,
 
-        }
+                preload:
+                    path.join(
+                        __dirname,
+                        "preload.cjs"
+                    )
 
-    });
+            }
+
+        });
 
 
     // --------------------------------------------------------
@@ -196,72 +205,34 @@ function createWindow() {
 
 function setupAutoUpdater() {
 
-    log("[Updater] Initialisation...");
+    log(
+        "[Updater] Initialisation..."
+    );
 
 
-    // --------------------------------------------------------
-    // Configuration
-    // --------------------------------------------------------
+    // ========================================================
+    // CONFIGURATION
+    // ========================================================
 
+    // Télécharger automatiquement
+    // lorsqu'une nouvelle version est trouvée.
     autoUpdater.autoDownload = true;
 
-    /*
-     * IMPORTANT :
-     *
-     * On désactive l'installation automatique
-     * lorsque app.quit() est appelé.
-     *
-     * L'installation sera déclenchée explicitement
-     * après update-downloaded.
-     */
 
+    // IMPORTANT :
+    //
+    // On NE laisse PAS electron-updater attendre
+    // la fermeture normale de l'application.
+    //
+    // On déclenchera nous-mêmes quitAndInstall()
+    // lorsque le téléchargement est terminé.
+    //
     autoUpdater.autoInstallOnAppQuit = false;
 
 
-    // --------------------------------------------------------
-    // Logger electron-updater
-    // --------------------------------------------------------
-
-    autoUpdater.logger = {
-
-        info(message) {
-
-            log(
-                `[Updater][INFO] ${message}`
-            );
-
-        },
-
-        warn(message) {
-
-            log(
-                `[Updater][WARN] ${message}`
-            );
-
-        },
-
-        error(message) {
-
-            log(
-                `[Updater][ERROR] ${message}`
-            );
-
-        },
-
-        debug(message) {
-
-            log(
-                `[Updater][DEBUG] ${message}`
-            );
-
-        }
-
-    };
-
-
-    // --------------------------------------------------------
-    // Checking
-    // --------------------------------------------------------
+    // ========================================================
+    // CHECK
+    // ========================================================
 
     autoUpdater.on(
         "checking-for-update",
@@ -275,9 +246,9 @@ function setupAutoUpdater() {
     );
 
 
-    // --------------------------------------------------------
-    // Update disponible
-    // --------------------------------------------------------
+    // ========================================================
+    // UPDATE DISPONIBLE
+    // ========================================================
 
     autoUpdater.on(
         "update-available",
@@ -291,25 +262,25 @@ function setupAutoUpdater() {
     );
 
 
-    // --------------------------------------------------------
-    // Pas de mise à jour
-    // --------------------------------------------------------
+    // ========================================================
+    // AUCUNE UPDATE
+    // ========================================================
 
     autoUpdater.on(
         "update-not-available",
         (info) => {
 
             log(
-                `[Updater] Aucune mise à jour disponible. Version distante : ${info.version}`
+                `[Updater] Modyx est à jour. Version distante : ${info.version}`
             );
 
         }
     );
 
 
-    // --------------------------------------------------------
-    // Progression
-    // --------------------------------------------------------
+    // ========================================================
+    // PROGRESSION
+    // ========================================================
 
     autoUpdater.on(
         "download-progress",
@@ -323,9 +294,9 @@ function setupAutoUpdater() {
     );
 
 
-    // --------------------------------------------------------
-    // Mise à jour téléchargée
-    // --------------------------------------------------------
+    // ========================================================
+    // UPDATE TÉLÉCHARGÉE
+    // ========================================================
 
     autoUpdater.on(
         "update-downloaded",
@@ -337,68 +308,69 @@ function setupAutoUpdater() {
 
 
             log(
-                "[Updater] Installation explicite..."
+                "[Updater] Installation immédiate..."
             );
 
 
-            /*
-             * Petit délai afin de laisser les derniers
-             * handlers / écritures se terminer proprement.
-             */
+            // Petit délai pour garantir que
+            // tous les handles/fichiers sont libérés.
+            setTimeout(
+                () => {
 
-            setTimeout(() => {
-
-                try {
-
-                    log(
-                        "[Updater] Appel de quitAndInstall(true, true)..."
-                    );
-
-
-                    /*
-                     * electron-updater 6.x :
-                     *
-                     *   true  = silent
-                     *   true  = forceRunAfter
-                     *
-                     * Cela donne :
-                     *
-                     *   installation silencieuse
-                     *   puis relance automatique de Modyx
-                     */
-
-                    autoUpdater.quitAndInstall(
-                        true,
-                        true
-                    );
-
-
-                } catch (error) {
-
-                    log(
-                        `[Updater] ERREUR quitAndInstall : ${error?.message || error}`
-                    );
-
-
-                    if (error?.stack) {
+                    try {
 
                         log(
-                            `[Updater] Stack : ${error.stack}`
+                            "[Updater] Fermeture de Modyx et lancement de l'installeur..."
                         );
+
+
+                        /*
+                         * electron-updater 6.x
+                         *
+                         * quitAndInstall(
+                         *     isSilent,
+                         *     isForceRunAfter
+                         * )
+                         *
+                         * true  = installation silencieuse
+                         * true  = relancer Modyx après
+                         *
+                         */
+
+                        autoUpdater.quitAndInstall(
+                            true,
+                            true
+                        );
+
+
+                    } catch (error) {
+
+                        log(
+                            `[Updater] ERREUR installation : ${error?.message || error}`
+                        );
+
+
+                        if (error?.stack) {
+
+                            log(
+                                `[Updater] Stack : ${error.stack}`
+                            );
+
+                        }
 
                     }
 
-                }
-
-            }, 1000);
+                },
+                1000
+            );
 
         }
     );
 
 
-    // --------------------------------------------------------
-    // Erreur updater
-    // --------------------------------------------------------
+    // ========================================================
+    // ERREUR
+    // ========================================================
 
     autoUpdater.on(
         "error",
@@ -421,9 +393,9 @@ function setupAutoUpdater() {
     );
 
 
-    // --------------------------------------------------------
-    // Lancer la recherche
-    // --------------------------------------------------------
+    // ========================================================
+    // LANCER LA RECHERCHE
+    // ========================================================
 
     log(
         "[Updater] Lancement de checkForUpdates()..."
@@ -432,22 +404,24 @@ function setupAutoUpdater() {
 
     autoUpdater
         .checkForUpdates()
-        .catch((error) => {
-
-            log(
-                `[Updater] checkForUpdates() a échoué : ${error?.message || error}`
-            );
-
-
-            if (error?.stack) {
+        .catch(
+            (error) => {
 
                 log(
-                    `[Updater] Stack : ${error.stack}`
+                    `[Updater] checkForUpdates() a échoué : ${error?.message || error}`
                 );
 
-            }
 
-        });
+                if (error?.stack) {
+
+                    log(
+                        `[Updater] Stack : ${error.stack}`
+                    );
+
+                }
+
+            }
+        );
 
 }
 
@@ -456,29 +430,35 @@ function setupAutoUpdater() {
 // APPLICATION READY
 // ============================================================
 
-app.whenReady().then(() => {
-
-    log(
-        "[App] Electron est prêt."
-    );
-
-
-    createWindow();
-
-
-    if (!isDev) {
-
-        setupAutoUpdater();
-
-    } else {
+app.whenReady().then(
+    () => {
 
         log(
-            "[Updater] Désactivé en développement."
+            "[App] Electron est prêt."
         );
 
-    }
 
-});
+        createWindow();
+
+
+        // ====================================================
+        // AUTO UPDATE
+        // ====================================================
+
+        if (!isDev) {
+
+            setupAutoUpdater();
+
+        } else {
+
+            log(
+                "[Updater] Désactivé en développement."
+            );
+
+        }
+
+    }
+);
 
 
 // ============================================================
