@@ -48,7 +48,9 @@ function createWindow() {
         });
 
     } else {
-        win.loadFile(path.join(__dirname, "../app/dist/index.html"));
+        win.loadFile(
+            path.join(app.getAppPath(), "dist/index.html")
+        );
     }
 }
 
