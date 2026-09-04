@@ -1,6 +1,8 @@
 {
   "name": "modyx",
   "productName": "Modyx",
+  "description": "Modyx",
+  "author": "Arthur640-ctrl",
   "private": true,
   "version": "1.0.1",
   "main": "electron/main.cjs",
@@ -53,8 +55,6 @@
   "build": {
     "appId": "com.gleeze.modyx",
     "productName": "Modyx",
-    "description": "Modyx",
-    "author": "Arthur640-ctrl",
 
     "directories": {
       "output": "dist-electron"
