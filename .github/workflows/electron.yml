@@ -52,10 +52,13 @@ jobs:
       # 3.5. Créer et pousser le tag Git proprement
       - name: Create Git Tag
         working-directory: app
+        env:
+          GH_TOKEN: ${{ secrets.MODYX_RELEASE_TOKEN }}
         run: |
           $version = node -p "require('./package.json').version"
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git remote set-url origin https://x-access-token:${env:GH_TOKEN}@github.com/Arthur640-ctrl/Modyx-Releases.git
           git tag "v$version"
           git push origin "v$version" --force
         shell: pwsh
