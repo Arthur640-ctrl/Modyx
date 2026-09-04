@@ -41,10 +41,6 @@ function createWindow() {
     });
 
     if (isDev) {
-        // =========================
-        // DEVELOPMENT
-        // =========================
-
         win.loadURL("http://localhost:5173");
 
         win.webContents.openDevTools({
@@ -52,14 +48,6 @@ function createWindow() {
         });
 
     } else {
-
-        win.webContents.openDevTools({
-            mode: "detach"
-        });
-        // =========================
-        // PRODUCTION
-        // =========================
-
         win.loadFile(
             path.join(__dirname, "../dist/index.html")
         );
@@ -67,6 +55,12 @@ function createWindow() {
 }
 
 function setupAutoUpdater() {
+    // Configuration explicite pour éviter l'erreur 404 sur GitHub
+    autoUpdater.setFeedURL({
+        provider: "github",
+        owner: "Arthur640-ctrl",
+        repo: "Modyx-Releases"
+    });
 
     autoUpdater.autoDownload = true;
     autoUpdater.autoInstallOnAppQuit = true;
@@ -95,10 +89,6 @@ function setupAutoUpdater() {
         console.log(
             `[Updater] Mise à jour téléchargée : ${info.version}`
         );
-
-        // Pour l'instant, on n'installe PAS automatiquement.
-        // On pourra ensuite afficher un bouton
-        // "Redémarrer pour mettre à jour".
     });
 
     autoUpdater.on("error", (error) => {
@@ -108,11 +98,10 @@ function setupAutoUpdater() {
         );
     });
 
-    autoUpdater.checkForUpdates();
+    autoUpdater.checkForUpdatesAndNotify();
 }
 
 app.whenReady().then(() => {
-
     createWindow();
 
     if (!isDev) {
@@ -124,4 +113,4 @@ app.on("window-all-closed", () => {
     if (process.platform !== "darwin") {
         app.quit();
     }
-})
+});
