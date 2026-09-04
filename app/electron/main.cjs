@@ -8,7 +8,10 @@ const {
 const path = require("path");
 const fs = require("fs");
 
-const { autoUpdater } = require("electron-updater");
+const {
+    autoUpdater
+} = require("electron-updater");
+
 
 // ============================================================
 // CONFIGURATION
@@ -27,22 +30,27 @@ const logFile = path.join(
 // ============================================================
 
 function log(message) {
+
     const line =
         `[${new Date().toISOString()}] ${message}\n`;
 
     console.log(message);
 
     try {
+
         fs.appendFileSync(
             logFile,
             line,
             "utf8"
         );
+
     } catch (error) {
+
         console.error(
             "[Logger] Impossible d'écrire le log :",
             error
         );
+
     }
 }
 
@@ -56,12 +64,14 @@ log("Modyx démarrage");
 log(`Version : ${app.getVersion()}`);
 log(`Packaged : ${app.isPackaged}`);
 log(`Mode : ${isDev ? "development" : "production"}`);
+log(`Executable : ${process.execPath}`);
+log(`AppPath : ${app.getAppPath()}`);
 log(`UserData : ${app.getPath("userData")}`);
 log("========================================");
 
 
 // ============================================================
-// IPC — OUVERTURE DE LIENS EXTERNES
+// IPC — LIENS EXTERNES
 // ============================================================
 
 ipcMain.handle(
@@ -71,28 +81,36 @@ ipcMain.handle(
         let parsedUrl;
 
         try {
+
             parsedUrl = new URL(url);
+
         } catch {
+
             throw new Error(
                 "URL invalide"
             );
+
         }
 
-        // Seule l'URL /pricing est autorisée.
+
         if (
             !["http:", "https:"].includes(
                 parsedUrl.protocol
             ) ||
             parsedUrl.pathname !== "/pricing"
         ) {
+
             throw new Error(
                 "URL externe non autorisée"
             );
+
         }
+
 
         await shell.openExternal(
             parsedUrl.toString()
         );
+
     }
 );
 
@@ -104,12 +122,14 @@ ipcMain.handle(
 function createWindow() {
 
     const win = new BrowserWindow({
+
         width: 1200,
         height: 800,
 
         autoHideMenuBar: true,
 
         webPreferences: {
+
             contextIsolation: true,
             nodeIntegration: false,
 
@@ -117,7 +137,9 @@ function createWindow() {
                 __dirname,
                 "preload.cjs"
             )
+
         }
+
     });
 
 
@@ -140,6 +162,7 @@ function createWindow() {
         });
 
         return;
+
     }
 
 
@@ -147,17 +170,23 @@ function createWindow() {
     // PRODUCTION
     // --------------------------------------------------------
 
-    const indexPath = path.join(
-        app.getAppPath(),
-        "dist",
-        "index.html"
-    );
+    const indexPath =
+        path.join(
+            app.getAppPath(),
+            "dist",
+            "index.html"
+        );
+
 
     log(
         `[Window] Chargement de ${indexPath}`
     );
 
-    win.loadFile(indexPath);
+
+    win.loadFile(
+        indexPath
+    );
+
 }
 
 
@@ -169,18 +198,69 @@ function setupAutoUpdater() {
 
     log("[Updater] Initialisation...");
 
+
     // --------------------------------------------------------
     // Configuration
     // --------------------------------------------------------
 
     autoUpdater.autoDownload = true;
 
-    // L'update sera installé lorsque l'application
-    // sera quittée.
-    autoUpdater.autoInstallOnAppQuit = true;
+    /*
+     * IMPORTANT :
+     *
+     * On désactive l'installation automatique
+     * lorsque app.quit() est appelé.
+     *
+     * L'installation sera déclenchée explicitement
+     * après update-downloaded.
+     */
+
+    autoUpdater.autoInstallOnAppQuit = false;
+
 
     // --------------------------------------------------------
-    // Événements
+    // Logger electron-updater
+    // --------------------------------------------------------
+
+    autoUpdater.logger = {
+
+        info(message) {
+
+            log(
+                `[Updater][INFO] ${message}`
+            );
+
+        },
+
+        warn(message) {
+
+            log(
+                `[Updater][WARN] ${message}`
+            );
+
+        },
+
+        error(message) {
+
+            log(
+                `[Updater][ERROR] ${message}`
+            );
+
+        },
+
+        debug(message) {
+
+            log(
+                `[Updater][DEBUG] ${message}`
+            );
+
+        }
+
+    };
+
+
+    // --------------------------------------------------------
+    // Checking
     // --------------------------------------------------------
 
     autoUpdater.on(
@@ -190,9 +270,14 @@ function setupAutoUpdater() {
             log(
                 "[Updater] Recherche de mise à jour..."
             );
+
         }
     );
 
+
+    // --------------------------------------------------------
+    // Update disponible
+    // --------------------------------------------------------
 
     autoUpdater.on(
         "update-available",
@@ -201,9 +286,14 @@ function setupAutoUpdater() {
             log(
                 `[Updater] Mise à jour disponible : ${info.version}`
             );
+
         }
     );
 
+
+    // --------------------------------------------------------
+    // Pas de mise à jour
+    // --------------------------------------------------------
 
     autoUpdater.on(
         "update-not-available",
@@ -212,9 +302,14 @@ function setupAutoUpdater() {
             log(
                 `[Updater] Aucune mise à jour disponible. Version distante : ${info.version}`
             );
+
         }
     );
 
+
+    // --------------------------------------------------------
+    // Progression
+    // --------------------------------------------------------
 
     autoUpdater.on(
         "download-progress",
@@ -223,9 +318,14 @@ function setupAutoUpdater() {
             log(
                 `[Updater] Téléchargement : ${Math.round(progress.percent)}%`
             );
+
         }
     );
 
+
+    // --------------------------------------------------------
+    // Mise à jour téléchargée
+    // --------------------------------------------------------
 
     autoUpdater.on(
         "update-downloaded",
@@ -235,12 +335,70 @@ function setupAutoUpdater() {
                 `[Updater] Mise à jour téléchargée : ${info.version}`
             );
 
+
             log(
-                "[Updater] Elle sera installée à la fermeture de Modyx."
+                "[Updater] Installation explicite..."
             );
+
+
+            /*
+             * Petit délai afin de laisser les derniers
+             * handlers / écritures se terminer proprement.
+             */
+
+            setTimeout(() => {
+
+                try {
+
+                    log(
+                        "[Updater] Appel de quitAndInstall(true, true)..."
+                    );
+
+
+                    /*
+                     * electron-updater 6.x :
+                     *
+                     *   true  = silent
+                     *   true  = forceRunAfter
+                     *
+                     * Cela donne :
+                     *
+                     *   installation silencieuse
+                     *   puis relance automatique de Modyx
+                     */
+
+                    autoUpdater.quitAndInstall(
+                        true,
+                        true
+                    );
+
+
+                } catch (error) {
+
+                    log(
+                        `[Updater] ERREUR quitAndInstall : ${error?.message || error}`
+                    );
+
+
+                    if (error?.stack) {
+
+                        log(
+                            `[Updater] Stack : ${error.stack}`
+                        );
+
+                    }
+
+                }
+
+            }, 1000);
+
         }
     );
 
+
+    // --------------------------------------------------------
+    // Erreur updater
+    // --------------------------------------------------------
 
     autoUpdater.on(
         "error",
@@ -250,30 +408,47 @@ function setupAutoUpdater() {
                 `[Updater] ERREUR : ${error?.message || error}`
             );
 
+
             if (error?.stack) {
+
                 log(
                     `[Updater] Stack : ${error.stack}`
                 );
+
             }
+
         }
     );
 
 
     // --------------------------------------------------------
-    // Lancement de la recherche
+    // Lancer la recherche
     // --------------------------------------------------------
 
     log(
         "[Updater] Lancement de checkForUpdates()..."
     );
 
-    autoUpdater.checkForUpdates()
+
+    autoUpdater
+        .checkForUpdates()
         .catch((error) => {
 
             log(
                 `[Updater] checkForUpdates() a échoué : ${error?.message || error}`
             );
+
+
+            if (error?.stack) {
+
+                log(
+                    `[Updater] Stack : ${error.stack}`
+                );
+
+            }
+
         });
+
 }
 
 
@@ -283,13 +458,14 @@ function setupAutoUpdater() {
 
 app.whenReady().then(() => {
 
-    log("[App] Electron est prêt.");
+    log(
+        "[App] Electron est prêt."
+    );
+
 
     createWindow();
 
 
-    // L'auto-updater ne fonctionne que sur
-    // une application réellement packagée.
     if (!isDev) {
 
         setupAutoUpdater();
@@ -299,7 +475,9 @@ app.whenReady().then(() => {
         log(
             "[Updater] Désactivé en développement."
         );
+
     }
+
 });
 
 
@@ -314,7 +492,10 @@ app.on(
         if (
             process.platform !== "darwin"
         ) {
+
             app.quit();
+
         }
+
     }
 );
