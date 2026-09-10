@@ -1,0 +1,33 @@
+services:
+  frontend:
+    container_name: modyx-frontend
+
+    build:
+      context: ./front
+
+    image: modyx-frontend
+
+    expose:
+      - "3000"
+
+    env_file:
+      - ./front/.env.production
+
+    restart: unless-stopped
+
+  backend:
+    container_name: modyx-backend
+
+    build:
+      context: ./back
+
+    image: modyx-backend
+
+    expose:
+      - "8000"
+
+    env_file:
+      - ./back/.env.production
+
+    restart: unless-stopped
+

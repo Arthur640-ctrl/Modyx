@@ -33,14 +33,14 @@ export async function register(pseudo, email, password) {
     } catch (error) {
         return {
             "success": false,
-            "error": error,
+            "error": error.message || "Network error",
             "display_errors": {
                 "email": "",
                 "pseudo": "",
                 "password": "",
                 "password_confirm": "",
                 "register_checkbox": "",
-                "form": error
+                "form": error.message || "Network error"
             }
         }
     }
@@ -146,14 +146,14 @@ export async function login(email, password) {
     } catch (error) {
         return {
             "success": false,
-            "error": error,
+            "error": error.message || "Network error",
             "display_errors": {
                 "email": "",
                 "pseudo": "",
                 "password": "",
                 "password_confirm": "",
                 "register_checkbox": "",
-                "form": error
+                "form": error.message || "Network error"
             }
         }
     }

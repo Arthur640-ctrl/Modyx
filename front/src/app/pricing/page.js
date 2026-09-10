@@ -7,7 +7,7 @@ import Header from '../../components/Header'
 import Footer from '../../components/Footer'
 import styles from './page.module.css'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000'
+const API_URL = process.env.NEXT_PUBLIC_API_URL
 
 export default function PricingPage() {
   const [data, setData] = useState(null)
