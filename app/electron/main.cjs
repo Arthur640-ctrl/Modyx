@@ -159,10 +159,8 @@ ipcMain.handle(
     }
 );
 
-function requestInstall() {
-    const canInstall = [UPDATE_STATUS.READY, "downloaded"].includes(updateState.status);
-
-    if (installRequested || !canInstall) {
+function schedulePendingUpdateRelaunch(reason) {
+    if (installRequested) {
         return false;
     }
 
@@ -175,25 +173,37 @@ function requestInstall() {
         }
     );
 
-    log("[Updater] Installation automatique demandée.");
-    log("[Updater] Appel de quitAndInstall(true, true)...");
+    log(`[Updater] ${reason}`);
 
-    try {
-        autoUpdater.quitAndInstall(true, true);
-        return true;
-    } catch (error) {
-        installRequested = false;
-        setUpdateState(
-            UPDATE_STATUS.READY,
-            {
-                required: true,
-                percent: 100,
-                error: error?.message || String(error)
-            }
-        );
-        log(`[Updater] ERREUR installation : ${error?.message || error}`);
-        throw error;
+    setTimeout(() => {
+        try {
+            app.relaunch();
+            app.exit();
+        } catch (error) {
+            installRequested = false;
+            setUpdateState(
+                UPDATE_STATUS.READY,
+                {
+                    required: true,
+                    percent: 100,
+                    error: error?.message || String(error)
+                }
+            );
+            log(`[Updater] ERREUR redémarrage : ${error?.message || error}`);
+        }
+    }, 1200);
+
+    return true;
+}
+
+function requestInstall() {
+    const canInstall = [UPDATE_STATUS.READY, "downloaded"].includes(updateState.status);
+
+    if (!canInstall) {
+        return false;
     }
+
+    return schedulePendingUpdateRelaunch("Un redémarrage est programmé pour appliquer la mise à jour sur le prochain lancement.");
 }
 
 ipcMain.handle(
@@ -317,20 +327,13 @@ function setupAutoUpdater() {
     // CONFIGURATION
     // ========================================================
 
-    // Télécharger automatiquement
-    // lorsqu'une nouvelle version est trouvée.
+    // Télécharger automatiquement lorsqu'une nouvelle version est trouvée.
     autoUpdater.autoDownload = true;
 
-
-    // IMPORTANT :
-    //
-    // On NE laisse PAS electron-updater attendre
-    // la fermeture normale de l'application.
-    //
-    // On déclenchera nous-mêmes quitAndInstall()
-    // lorsque le téléchargement est terminé.
-    //
+    // On laisse electron-updater gérer l'installation sur le prochain lancement,
+    // ce qui évite les boucles et la réinstallation de l'ancienne version.
     autoUpdater.autoInstallOnAppQuit = false;
+    autoUpdater.autoInstallEvent = "onNextLaunch";
 
 
     // ========================================================
@@ -417,11 +420,7 @@ function setupAutoUpdater() {
 
         sendUpdateEvent("update-downloaded", { version: nextVersion });
         log(`[Updater] Mise à jour téléchargée : ${nextVersion}`);
-        log("[Updater] Installation automatique en cours...");
-
-        setTimeout(() => {
-            requestInstall();
-        }, 750);
+        schedulePendingUpdateRelaunch("Mise à jour prête. Redémarrage programmé pour appliquer l'installation sur le prochain lancement.");
     });
 
     // ========================================================
@@ -460,12 +459,12 @@ function setupAutoUpdater() {
 
 
     autoUpdater
-        .checkForUpdates()
+        .checkForUpdatesAndNotify()
         .catch(
             (error) => {
 
                 log(
-                    `[Updater] checkForUpdates() a échoué : ${error?.message || error}`
+                    `[Updater] checkForUpdatesAndNotify() a échoué : ${error?.message || error}`
                 );
 
 
