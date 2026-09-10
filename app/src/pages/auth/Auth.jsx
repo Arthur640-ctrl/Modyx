@@ -226,7 +226,7 @@ export default function Auth() {
                         className={styles.welcome_cta}
                         onClick={() => set_screen("auth")}
                     >
-                        Commencer
+                        Commencerrrrr
                     </button>
                 </div>
             )}
