@@ -159,6 +159,11 @@ ipcMain.handle(
     }
 );
 
+ipcMain.handle(
+    "get-update-state",
+    () => updateState
+);
+
 function schedulePendingUpdateRelaunch(reason) {
     if (installRequested) {
         return false;
@@ -493,10 +498,6 @@ app.whenReady().then(
             "[App] Electron est prêt."
         );
 
-
-        createWindow();
-
-
         // ====================================================
         // AUTO UPDATE
         // ====================================================
@@ -512,6 +513,10 @@ app.whenReady().then(
             );
 
         }
+
+        // L'updater doit être initialisé avant la fenêtre afin que son
+        // premier état soit disponible dès le chargement du renderer.
+        createWindow();
 
     }
 );

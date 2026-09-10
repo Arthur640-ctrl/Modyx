@@ -72,6 +72,26 @@ export default function App() {
     }
 
     useEffect(() => {
+        const readCurrentUpdateState = async () => {
+            if (!window.modyx?.getUpdateState) {
+                return
+            }
+
+            try {
+                const currentUpdate = await window.modyx.getUpdateState()
+                set_update((current) => ({
+                    ...current,
+                    ...currentUpdate,
+                    currentVersion: currentUpdate?.currentVersion ?? current.currentVersion,
+                    latestVersion: currentUpdate?.latestVersion ?? currentUpdate?.version ?? current.latestVersion,
+                    version: currentUpdate?.version ?? current.version,
+                    percent: currentUpdate?.percent ?? current.percent ?? 0
+                }))
+            } catch (error) {
+                console.error("Impossible de lire l'état de mise à jour :", error)
+            }
+        }
+
         const unsubscribe = window.modyx?.onUpdateState?.((nextUpdate) => {
             set_update((current) => ({
                 ...current,
@@ -82,6 +102,8 @@ export default function App() {
                 percent: nextUpdate?.percent ?? current.percent ?? 0
             }))
         })
+
+        void readCurrentUpdateState()
 
         return () => {
             unsubscribe?.()

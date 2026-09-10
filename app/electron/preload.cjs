@@ -14,6 +14,7 @@ function subscribe(channel, listener) {
 
 contextBridge.exposeInMainWorld("modyx", {
     openExternal: (url) => ipcRenderer.invoke("open-external", url),
+    getUpdateState: () => ipcRenderer.invoke("get-update-state"),
     onUpdateState: (listener) => subscribe("update-state", listener),
     onUpdateAvailable: (listener) => subscribe("update-available", listener),
     onUpdateProgress: (listener) => subscribe("update-progress", listener),
