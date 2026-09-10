@@ -12,28 +12,59 @@ const {
     autoUpdater
 } = require("electron-updater");
 
+const UPDATE_STATUS = Object.freeze({
+    IDLE: "idle",
+    CHECKING: "checking",
+    DOWNLOADING: "downloading",
+    READY: "ready",
+    INSTALLING: "installing",
+    ERROR: "error"
+});
+
+const BLOCKING_UPDATE_STATUSES = new Set([
+    UPDATE_STATUS.CHECKING,
+    UPDATE_STATUS.DOWNLOADING,
+    UPDATE_STATUS.READY,
+    UPDATE_STATUS.INSTALLING,
+    UPDATE_STATUS.ERROR
+]);
+
 let mainWindow = null;
 let updateState = {
-    status: "idle",
+    status: UPDATE_STATUS.IDLE,
     version: null,
-    percent: 0
+    currentVersion: app.getVersion(),
+    latestVersion: null,
+    percent: 0,
+    required: false,
+    error: null
 };
 let installRequested = false;
+let appReadyForDisplay = false;
+
+const logFile = path.join(app.getPath("userData"), "modyx.log");
+
+if (!app.requestSingleInstanceLock()) {
+    console.log("[App] Une autre instance de Modyx est déjà ouverte. Fermeture de l'instance en cours.");
+    app.quit();
+}
+
+app.on("second-instance", () => {
+    if (mainWindow) {
+        if (mainWindow.isMinimized()) {
+            mainWindow.restore();
+        }
+        mainWindow.show();
+        mainWindow.focus();
+    }
+});
 
 
 // ============================================================
 // CONFIGURATION
 // ============================================================
 
-const isDev =
-    !app.isPackaged;
-
-
-const logFile =
-    path.join(
-        app.getPath("userData"),
-        "modyx.log"
-    );
+const isDev = !app.isPackaged;
 
 
 // ============================================================
@@ -128,46 +159,46 @@ ipcMain.handle(
     }
 );
 
+function requestInstall() {
+    const canInstall = [UPDATE_STATUS.READY, "downloaded"].includes(updateState.status);
+
+    if (installRequested || !canInstall) {
+        return false;
+    }
+
+    installRequested = true;
+    setUpdateState(
+        UPDATE_STATUS.INSTALLING,
+        {
+            required: true,
+            percent: 100
+        }
+    );
+
+    log("[Updater] Installation automatique demandée.");
+    log("[Updater] Appel de quitAndInstall(true, true)...");
+
+    try {
+        autoUpdater.quitAndInstall(true, true);
+        return true;
+    } catch (error) {
+        installRequested = false;
+        setUpdateState(
+            UPDATE_STATUS.READY,
+            {
+                required: true,
+                percent: 100,
+                error: error?.message || String(error)
+            }
+        );
+        log(`[Updater] ERREUR installation : ${error?.message || error}`);
+        throw error;
+    }
+}
+
 ipcMain.handle(
     "install-update",
-    () => {
-        if (
-            updateState.status !== "downloaded" ||
-            installRequested
-        ) {
-            return false;
-        }
-
-        installRequested = true;
-        setUpdateState(
-            "installing"
-        );
-
-        log(
-            "[Updater] Installation demandée par l'utilisateur."
-        );
-        log(
-            "[Updater] Appel de quitAndInstall(true, true)..."
-        );
-
-        try {
-            autoUpdater.quitAndInstall(
-                true,
-                true
-            );
-        } catch (error) {
-            installRequested = false;
-            setUpdateState(
-                "downloaded"
-            );
-            log(
-                `[Updater] ERREUR installation : ${error?.message || error}`
-            );
-            throw error;
-        }
-
-        return true;
-    }
+    () => requestInstall()
 );
 
 
@@ -178,111 +209,78 @@ ipcMain.handle(
 function createWindow() {
     const win =
         new BrowserWindow({
-
             width: 1200,
             height: 800,
-
+            show: false,
             autoHideMenuBar: true,
-
             webPreferences: {
-
                 contextIsolation: true,
-
                 nodeIntegration: false,
-
-                preload:
-                    path.join(
-                        __dirname,
-                        "preload.cjs"
-                    )
-
+                preload: path.join(__dirname, "preload.cjs")
             }
-
         });
 
     mainWindow = win;
 
-    win.webContents.on(
-        "did-finish-load",
-        () => {
-            if (
-                updateState.status !== "idle"
-            ) {
-                win.webContents.send(
-                    "update-state",
-                    updateState
-                );
-            }
+    win.webContents.on("did-finish-load", () => {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+            win.webContents.send("update-state", updateState);
         }
-    );
+    });
 
-    win.on(
-        "closed",
-        () => {
-            if (
-                mainWindow === win
-            ) {
-                mainWindow = null;
-            }
+    win.on("closed", () => {
+        if (mainWindow === win) {
+            mainWindow = null;
         }
-    );
-
+    });
 
     // --------------------------------------------------------
     // DEVELOPMENT
     // --------------------------------------------------------
 
     if (isDev) {
-
-        log(
-            "[Window] Chargement du serveur Vite..."
-        );
-
-        win.loadURL(
-            "http://localhost:5173"
-        );
-
-        win.webContents.openDevTools({
-            mode: "detach"
-        });
-
+        log("[Window] Chargement du serveur Vite...");
+        win.loadURL("http://localhost:5173");
+        win.webContents.openDevTools({ mode: "detach" });
+        win.show();
         return;
-
     }
-
 
     // --------------------------------------------------------
     // PRODUCTION
     // --------------------------------------------------------
 
-    const indexPath =
-        path.join(
-            app.getAppPath(),
-            "dist",
-            "index.html"
-        );
-
-
-    log(
-        `[Window] Chargement de ${indexPath}`
-    );
-
-
-    win.loadFile(
-        indexPath
-    );
-
+    const indexPath = path.join(app.getAppPath(), "dist", "index.html");
+    log(`[Window] Chargement de ${indexPath}`);
+    win.loadFile(indexPath);
 }
 
 function sendUpdateEvent(channel, payload) {
-    if (
-        mainWindow &&
-        !mainWindow.isDestroyed()
-    ) {
-        mainWindow.webContents.send(
-            channel,
-            payload
-        );
+    if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send(channel, payload);
+    }
+}
+
+function applyWindowVisibilityForUpdate() {
+    if (!mainWindow || mainWindow.isDestroyed()) {
+        return;
+    }
+
+    const shouldBlockApp =
+        updateState.required ||
+        BLOCKING_UPDATE_STATUSES.has(updateState.status);
+
+    if (shouldBlockApp) {
+        mainWindow.hide();
+        return;
+    }
+
+    if (!appReadyForDisplay) {
+        appReadyForDisplay = true;
+    }
+
+    if (!mainWindow.isVisible()) {
+        mainWindow.show();
     }
 }
 
@@ -290,13 +288,17 @@ function setUpdateState(status, details = {}) {
     updateState = {
         ...updateState,
         ...details,
-        status
+        status,
+        currentVersion: app.getVersion(),
+        latestVersion: details.version ?? updateState.latestVersion ?? updateState.version,
+        required: details.required ?? updateState.required ?? false,
+        error: details.error ?? null
     };
 
-    sendUpdateEvent(
-        "update-state",
-        updateState
-    );
+    if (mainWindow && !mainWindow.isDestroyed()) {
+        applyWindowVisibilityForUpdate();
+        sendUpdateEvent("update-state", updateState);
+    }
 }
 
 
@@ -335,173 +337,117 @@ function setupAutoUpdater() {
     // CHECK
     // ========================================================
 
-    autoUpdater.on(
-        "checking-for-update",
-        () => {
+    autoUpdater.on("checking-for-update", () => {
+        setUpdateState(UPDATE_STATUS.CHECKING, {
+            version: null,
+            latestVersion: null,
+            percent: 0,
+            required: false,
+            error: null
+        });
 
-            setUpdateState(
-                "checking",
-                {
-                    percent: 0
-                }
-            );
-
-            log(
-                "[Updater] Recherche de mise à jour..."
-            );
-
-        }
-    );
-
+        log("[Updater] Recherche de mise à jour...");
+    });
 
     // ========================================================
     // UPDATE DISPONIBLE
     // ========================================================
 
-    autoUpdater.on(
-        "update-available",
-        (info) => {
+    autoUpdater.on("update-available", (info) => {
+        setUpdateState(UPDATE_STATUS.DOWNLOADING, {
+            version: info.version,
+            latestVersion: info.version,
+            percent: 0,
+            required: true,
+            error: null
+        });
 
-            setUpdateState(
-                "downloading",
-                {
-                    version: info.version,
-                    percent: 0
-                }
-            );
-            sendUpdateEvent(
-                "update-available",
-                {
-                    version: info.version
-                }
-            );
-
-            log(
-                `[Updater] Mise à jour disponible : ${info.version}`
-            );
-
-        }
-    );
-
+        sendUpdateEvent("update-available", { version: info.version });
+        log(`[Updater] Mise à jour disponible : ${info.version}`);
+    });
 
     // ========================================================
     // AUCUNE UPDATE
     // ========================================================
 
-    autoUpdater.on(
-        "update-not-available",
-        (info) => {
+    autoUpdater.on("update-not-available", (info) => {
+        setUpdateState(UPDATE_STATUS.IDLE, {
+            version: null,
+            latestVersion: info?.version || null,
+            percent: 0,
+            required: false,
+            error: null
+        });
 
-            setUpdateState(
-                "idle",
-                {
-                    version: null,
-                    percent: 0
-                }
-            );
-
-            log(
-                `[Updater] Modyx est à jour. Version distante : ${info.version}`
-            );
-
-        }
-    );
-
+        log(`[Updater] Modyx est à jour. Version distante : ${info.version}`);
+    });
 
     // ========================================================
     // PROGRESSION
     // ========================================================
 
-    autoUpdater.on(
-        "download-progress",
-        (progress) => {
+    autoUpdater.on("download-progress", (progress) => {
+        const percent = Math.round(progress.percent || 0);
 
-            setUpdateState(
-                "downloading",
-                {
-                    percent: Math.round(progress.percent)
-                }
-            );
-            sendUpdateEvent(
-                "update-progress",
-                {
-                    percent: Math.round(progress.percent)
-                }
-            );
+        setUpdateState(UPDATE_STATUS.DOWNLOADING, {
+            version: updateState.version ?? updateState.latestVersion ?? app.getVersion(),
+            percent,
+            required: true,
+            error: null
+        });
 
-            log(
-                `[Updater] Téléchargement : ${Math.round(progress.percent)}%`
-            );
-
-        }
-    );
-
+        sendUpdateEvent("update-progress", { percent });
+        log(`[Updater] Téléchargement : ${percent}%`);
+    });
 
     // ========================================================
     // UPDATE TÉLÉCHARGÉE
     // ========================================================
 
-    autoUpdater.on(
-        "update-downloaded",
-        (info) => {
+    autoUpdater.on("update-downloaded", (info) => {
+        const nextVersion = info.version || updateState.latestVersion || updateState.version;
 
-            setUpdateState(
-                "downloaded",
-                {
-                    version: info.version,
-                    percent: 100
-                }
-            );
-            sendUpdateEvent(
-                "update-downloaded",
-                {
-                    version: info.version
-                }
-            );
+        setUpdateState(UPDATE_STATUS.READY, {
+            version: nextVersion,
+            latestVersion: nextVersion,
+            percent: 100,
+            required: true,
+            error: null
+        });
 
-            log(
-                `[Updater] Mise à jour téléchargée : ${info.version}`
-            );
+        sendUpdateEvent("update-downloaded", { version: nextVersion });
+        log(`[Updater] Mise à jour téléchargée : ${nextVersion}`);
+        log("[Updater] Installation automatique en cours...");
 
-            log(
-                "[Updater] En attente de confirmation utilisateur..."
-            );
-
-        }
-    );
-
+        setTimeout(() => {
+            requestInstall();
+        }, 750);
+    });
 
     // ========================================================
     // ERREUR
     // ========================================================
 
-    autoUpdater.on(
-        "error",
-        (error) => {
+    autoUpdater.on("error", (error) => {
+        const isMandatoryUpdateFailure = updateState.required || installRequested;
 
-            setUpdateState(
-                "idle",
-                {
-                    version: null,
-                    percent: 0
-                }
-            );
-
-            log(
-                `[Updater] ERREUR : ${error?.message || error}`
-            );
-
-
-            if (error?.stack) {
-
-                log(
-                    `[Updater] Stack : ${error.stack}`
-                );
-
+        setUpdateState(
+            isMandatoryUpdateFailure ? UPDATE_STATUS.ERROR : UPDATE_STATUS.IDLE,
+            {
+                version: updateState.version ?? null,
+                latestVersion: updateState.latestVersion ?? null,
+                percent: 0,
+                required: isMandatoryUpdateFailure,
+                error: error?.message || String(error)
             }
+        );
 
+        log(`[Updater] ERREUR : ${error?.message || error}`);
+
+        if (error?.stack) {
+            log(`[Updater] Stack : ${error.stack}`);
         }
-    );
+    });
 
 
     // ========================================================

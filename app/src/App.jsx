@@ -1,4 +1,5 @@
-import { Routes, Route, Navigate, Outlet } from "react-router-dom"
+/* eslint-disable no-unused-vars */
+import * as ReactRouter from "react-router-dom"
 import { useEffect, useState } from "react"
 
 import Auth from "./pages/auth/Auth.jsx"
@@ -27,28 +28,25 @@ function ProtectedDashboardLayout() {
     }, [])
 
     if (isChecking) return <div>Chargement...</div>
-    if (!isAuthenticated) return <Navigate to='/' replace />
+    if (!isAuthenticated) return <ReactRouter.Navigate to='/' replace />
 
     // Structure des routes enfants
     return (
         <Dashboard>
-            <Outlet />
+            <ReactRouter.Outlet />
         </Dashboard>
     )
 }
 
 export default function App() {
-    const [update, set_update] = useState(null)
-
-    useEffect(() => {
-        const unsubscribe = window.modyx?.onUpdateState?.((nextUpdate) => {
-            set_update(nextUpdate)
-        })
-
-        return () => {
-            unsubscribe?.()
-        }
-    }, [])
+    const [update, set_update] = useState({
+        status: "checking",
+        required: true,
+        currentVersion: "...",
+        version: null,
+        latestVersion: null,
+        percent: 0
+    })
 
     const installUpdate = async () => {
         if (!window.modyx?.installUpdate) {
@@ -67,31 +65,71 @@ export default function App() {
             console.error("Impossible d'installer la mise à jour :", error)
             set_update((current) => (
                 current
-                    ? { ...current, status: "downloaded" }
+                    ? { ...current, status: "ready" }
                     : current
             ))
         }
     }
 
+    useEffect(() => {
+        const unsubscribe = window.modyx?.onUpdateState?.((nextUpdate) => {
+            set_update((current) => ({
+                ...current,
+                ...nextUpdate,
+                currentVersion: nextUpdate?.currentVersion ?? current.currentVersion,
+                latestVersion: nextUpdate?.latestVersion ?? nextUpdate?.version ?? current.latestVersion,
+                version: nextUpdate?.version ?? current.version,
+                percent: nextUpdate?.percent ?? current.percent ?? 0
+            }))
+        })
+
+        return () => {
+            unsubscribe?.()
+        }
+    }, [])
+
+    useEffect(() => {
+        if (!window.modyx?.installUpdate) {
+            return
+        }
+
+        if (!update || !["ready", "downloaded"].includes(update.status)) {
+            return
+        }
+
+        const timer = window.setTimeout(() => {
+            void installUpdate()
+        }, 800)
+
+        return () => {
+            window.clearTimeout(timer)
+        }
+    }, [update?.status, update?.version])
+
+    const shouldBlockApp = Boolean(update) && update.status !== "idle"
+
+    if (shouldBlockApp) {
+        return <UpdateNotification update={update} onInstall={installUpdate} />
+    }
+
     return (
         <>
-            <Routes>
-                <Route path='/' element={<Auth />} />
+            <ReactRouter.Routes>
+                <ReactRouter.Route path='/' element={<Auth />} />
 
-                <Route path='/dashboard' element={<ProtectedDashboardLayout />}>
+                <ReactRouter.Route path='/dashboard' element={<ProtectedDashboardLayout />}>
 
                     {/* /dashboard redirige vers /dashboard/home */}
-                    <Route index element={<Navigate to='home' replace />} />
+                    <ReactRouter.Route index element={<ReactRouter.Navigate to='home' replace />} />
 
-                    <Route path='home' element={<Home />} />
-                    <Route path='modpacks' element={<Modpacks />} />
-                    <Route path='modpacks/editor' element={<Editor />} />
+                    <ReactRouter.Route path='home' element={<Home />} />
+                    <ReactRouter.Route path='modpacks' element={<Modpacks />} />
+                    <ReactRouter.Route path='modpacks/editor' element={<Editor />} />
 
-                </Route>
+                </ReactRouter.Route>
 
-                <Route path='*' element={<Navigate to='/' replace />} />
-            </Routes>
-            <UpdateNotification update={update} onInstall={installUpdate} />
+                <ReactRouter.Route path='*' element={<ReactRouter.Navigate to='/' replace />} />
+            </ReactRouter.Routes>
         </>
     )
 }

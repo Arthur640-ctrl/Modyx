@@ -1,83 +1,140 @@
-.notification {
+.overlay {
     position: fixed;
-    top: 20px;
-    right: 20px;
+    inset: 0;
     z-index: 100;
-    display: flex;
-    gap: 14px;
-    width: min(390px, calc(100vw - 40px));
-    padding: 16px;
-    border: 1px solid rgba(115, 160, 79, 0.55);
-    border-radius: 14px;
-    background: rgba(23, 27, 30, 0.97);
-    box-shadow: 0 14px 36px var(--shadow);
+    display: grid;
+    place-items: center;
+    padding: 24px;
+    background: linear-gradient(180deg, rgba(6, 9, 12, 0.96), rgba(14, 20, 25, 0.98));
 }
 
-.icon {
+.panel {
+    width: min(560px, 100%);
+    padding: 28px;
+    border: 1px solid rgba(115, 160, 79, 0.45);
+    border-radius: 20px;
+    background: rgba(18, 23, 27, 0.96);
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55);
+}
+
+.brand {
     display: flex;
-    align-items: flex-start;
-    padding-top: 2px;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.logo {
+    display: grid;
+    place-items: center;
+    width: 52px;
+    height: 52px;
+    border-radius: 16px;
+    background: rgba(115, 160, 79, 0.14);
     color: var(--accent);
 }
 
-.content {
-    display: flex;
-    flex: 1;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.content strong {
-    font-size: 14px;
-}
-
-.content p {
+.eyebrow {
+    margin: 0;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
     color: var(--text-muted);
-    font-size: 13px;
-    line-height: 1.4;
 }
 
-.content small {
+.panel h1 {
+    margin: 4px 0 0;
+    font-size: clamp(24px, 4vw, 34px);
+    line-height: 1.1;
+}
+
+.description {
+    margin: 0 0 18px;
+    color: var(--text-muted);
+    font-size: 15px;
+}
+
+.versionGrid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 18px;
+}
+
+.versionCard {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 14px 16px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.versionCard span {
     color: var(--text-muted);
     font-size: 11px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.versionCard strong {
+    font-size: 22px;
+    font-weight: 700;
+}
+
+.statusRow {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+    color: var(--text);
+    font-weight: 600;
+}
+
+.statusIcon {
+    display: grid;
+    place-items: center;
+    color: var(--accent);
+}
+
+.statusRow p {
+    margin: 0;
+    color: var(--text);
 }
 
 .progressTrack {
-    height: 6px;
+    height: 10px;
     overflow: hidden;
     border-radius: 999px;
-    background: rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.08);
 }
 
 .progressTrack span {
     display: block;
     height: 100%;
     border-radius: inherit;
-    background: var(--accent);
-    transition: width var(--transition) ease;
+    background: linear-gradient(90deg, var(--accent), #9fe379);
+    transition: width 0.25s ease;
 }
 
-.installButton {
-    align-self: flex-start;
-    margin-top: 4px;
-    padding: 9px 12px;
+.progressMeta {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 8px;
+    color: var(--text-muted);
+    font-size: 12px;
+}
+
+.retryButton {
+    margin-top: 18px;
+    padding: 10px 16px;
     border: 0;
-    border-radius: 8px;
+    border-radius: 10px;
     background: var(--accent);
     color: var(--text);
     cursor: pointer;
-    font-size: 12px;
     font-weight: 700;
-    transition: background var(--transition);
-}
-
-.installButton:hover:not(:disabled) {
-    background: var(--accent-hover);
-}
-
-.installButton:disabled {
-    cursor: not-allowed;
-    opacity: 0.6;
 }
 
 .spinning {
