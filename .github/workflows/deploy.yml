@@ -1,0 +1,38 @@
+name: Deploy Modyx
+
+on:
+  push:
+    branches:
+      - prod
+
+  workflow_dispatch:
+
+jobs:
+
+  deploy:
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Deploy with SSH
+
+        uses: appleboy/ssh-action@v1.0.3
+
+        with:
+
+          host: ${{ secrets.HOST }}
+
+          username: root
+
+          key: ${{ secrets.SSH_KEY }}
+
+          script: |
+
+            cd /opt/Modyx
+
+            git pull origin prod
+
+            docker compose down
+
+            docker compose up -d --build
