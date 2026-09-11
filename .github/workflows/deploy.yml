@@ -8,27 +8,20 @@ on:
   workflow_dispatch:
 
 jobs:
-
   deploy:
-
     runs-on: ubuntu-latest
 
     steps:
-
       - name: Deploy with SSH
-
-        uses: appleboy/ssh-action@v1.0.3
+        uses: appleboy/ssh-action@v1
 
         with:
-
           host: ${{ secrets.HOST }}
-
-          username: ubuntu
-
+          username: root
           key: ${{ secrets.SSH_KEY }}
+          port: 22
 
           script: |
-
             cd /opt/Modyx
 
             git pull origin prod
