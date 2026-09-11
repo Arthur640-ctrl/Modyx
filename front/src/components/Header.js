@@ -40,10 +40,10 @@ export default function Header() {
 
         {/* CTA BOUTON DROIT */}
         <div className={styles.actions}>
-          <a href="#download" className={styles.btn_download}>
+          <Link href="/download" className={styles.btn_download}>
             <Download size={16} />
             <span>Télécharger</span>
-          </a>
+          </Link>
         </div>
 
       </div>

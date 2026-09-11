@@ -41,7 +41,7 @@ export default function Footer() {
             <ul className={styles.col_list}>
               <li><Link href="/#features">Fonctionnalités</Link></li>
               <li><Link href="/pricing">Tarifs</Link></li>
-              <li><Link href="/#download">Télécharger</Link></li>
+              <li><Link href="/download">Télécharger</Link></li>
               <li><Link href="/changelog">Nouveautés (Changelog)</Link></li>
             </ul>
           </div>

@@ -118,10 +118,10 @@ export default function LandingPage() {
                 </p>
 
                 <div className={styles.hero_cta_group}>
-                    <a href="#download" className={styles.btn_primary}>
+                    <Link href="/download" className={styles.btn_primary}>
                         <span>Télécharger</span>
                         <ChevronRight className={styles.btn_icon} size={18} />
-                    </a>
+                    </Link>
 
                     <a href="#features" className={styles.btn_secondary}>
                         En savoir plus
@@ -223,10 +223,10 @@ export default function LandingPage() {
                         </p>
 
                         <div className={styles.cta_buttons}>
-                            <a href="#download" className={styles.btn_primary}>
+                            <Link href="/download" className={styles.btn_primary}>
                                 <span>Télécharger Modyx</span>
                                 <ChevronRight className={styles.btn_icon} size={18} />
-                            </a>
+                            </Link>
                         </div>
                     </div>
                 </div>
