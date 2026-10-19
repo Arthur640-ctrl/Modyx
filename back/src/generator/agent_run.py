@@ -14,7 +14,7 @@ from beanie import init_beanie, PydanticObjectId
 from core.credits import *
 
 from generator.services.llm_calls import call_llm
-
+from generator.services.llm_router import *
 from generator.stream_manager import *
 
 agent_queue = asyncio.Queue(maxsize=20)
@@ -974,7 +974,6 @@ async def run_agent(prompt, modpack_id: str, agent_run: AgentRun, assistant_mess
 
 
 async def finalize_agent_run(user_id: str, agent_run_id: str):
-    # Récupérer les métriques d'utilisation du run
     try:
         run_obj_id = PydanticObjectId(agent_run_id)
     except Exception:
@@ -984,82 +983,49 @@ async def finalize_agent_run(user_id: str, agent_run_id: str):
     if not usage:
         return
 
-    # Récupérer le modele et ses prix
     model_id = usage.model_id
 
-    providers = await Provider.find(
-        Provider.reachable == True
-    ).to_list()
-
-    model = None
-
-    for provider in providers:
-        for provider_model in provider.models:
-            if provider_model.model_id == model_id:
-                model = provider_model
+    # Rechercher le modèle et ses prix dans la configuration JSON du routeur
+    model_config = None
+    for provider in router.config.get("providers", []):
+        for m in provider.get("models", []):
+            if m["model_id"] == model_id:
+                model_config = m
                 break
-
-        if model:
+        if model_config:
             break
 
-    if not model:
-        print(
-            f"[Billing] Modèle introuvable : {model_id}"
-        )
+    # Si c'est un modèle local (LM Studio), les prix sont de 0
+    if not model_config and model_id in [m["model_id"] for m in await router.get_lm_studio_models()]:
+        model_config = {"cache_hit_pricing": 0, "cache_miss_pricing": 0, "output_pricing": 0}
+
+    if not model_config:
+        print(f"[Billing] Modèle introuvable dans la config : {model_id}")
         return
 
-    # Calcul du cout api en usd
     cost_usd = (
-        (usage.cache_hit_tokens / 1_000_000 * model.cache_hit_pricing)
-        + (usage.cache_miss_tokens / 1_000_000 * model.cache_miss_pricing)
-        + (usage.output_tokens / 1_000_000 * model.output_pricing)
+        (usage.cache_hit_tokens / 1_000_000 * model_config.get("cache_hit_pricing", 0))
+        + (usage.cache_miss_tokens / 1_000_000 * model_config.get("cache_miss_pricing", 0))
+        + (usage.output_tokens / 1_000_000 * model_config.get("output_pricing", 0))
     )
 
-    # Conversion en credit
     cost_eur = cost_usd * 0.92
+    cost_in_credits = max(1, math.ceil(cost_eur * 100))
 
-    cost_in_credits = math.ceil(cost_eur * 100)
-    
-    if cost_in_credits < 1:
-        cost_in_credits = 1
-
-    # get user
     user = await User.find_one(User.id == user_id)
-
     BASE_HOLD = 2
 
-    # Rembourser 
-    hold_refunded = await add_credits(
-        amount=BASE_HOLD,
-        user=user
-    )
-
+    hold_refunded = await add_credits(amount=BASE_HOLD, user=user)
     if not hold_refunded:
-        print(
-            f"[Billing] Impossible de rembourser le hold "
-            f"pour le run {agent_run_id}"
-        )
+        print(f"[Billing] Impossible de rembourser le hold pour le run {agent_run_id}")
         return
 
-    # Deduire
-    credits_charged = await remove_credits(
-        amount=cost_in_credits,
-        user=user
-    )
-
+    credits_charged = await remove_credits(amount=cost_in_credits, user=user)
     if not credits_charged:
-        print(
-            f"[Billing] Impossible de facturer "
-            f"{cost_in_credits} crédits pour le run {agent_run_id}"
-        )
+        print(f"[Billing] Impossible de facturer {cost_in_credits} crédits pour le run {agent_run_id}")
         return
 
-    print(
-        f"[Billing] Run {agent_run_id} finalisé : "
-        f"{cost_in_credits} crédits facturés "
-        f"(hold de {BASE_HOLD} remboursé, "
-        f"coût API : ${cost_usd:.6f} / €{cost_eur:.6f})"
-    )
+    print(f"[Billing] Run {agent_run_id} finalisé : {cost_in_credits} crédits facturés")
 
 async def agent_worker():
     while True:

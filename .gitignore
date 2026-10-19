@@ -25,6 +25,10 @@ back/src/generator/llm/tools/__pycache__/search_mods.cpython-313.pyc
 back/src/generator/services/__pycache__/modrinth.cpython-313.pyc
 back/.env
 back/.env.local
+back/llm_config.json
+back/src/generator/services/__pycache__/llm_calls.cpython-313.pyc
+back/src/generator/services/__pycache__/llm_router.cpython-313.pyc
 
 # App
 /app/dist-electron
+
