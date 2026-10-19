@@ -1,6 +1,8 @@
 import asyncio
 import time
+import os
 from datetime import datetime
+from pathlib import Path
 import json
 import httpx
 
@@ -33,8 +35,10 @@ class RateLimiter:
             self.history.append(time.time())
 
 class LLM_Router:
-    def __init__(self, config_path: str = "back/llm_config.json", interval_seconds: int = 60):
-        self.config_path = config_path
+    def __init__(self, config_path: str | None = None, interval_seconds: int = 60):
+        if config_path is None:
+            config_path = os.environ.get("LLM_CONFIG_PATH", "llm_config.json")
+        self.config_path = str(Path(config_path).resolve())
         self.interval_seconds = interval_seconds
         self.config = self.load_config()
         self.rate_limiters = {}
@@ -133,4 +137,4 @@ class LLM_Router:
         if provider_id in self.rate_limiters:
             await self.rate_limiters[provider_id].acquire()
 
-router = LLM_Router(config_path=r'C:\Users\g_e_o\Documents\Modyx\back\llm_config.json')
+router = LLM_Router()
