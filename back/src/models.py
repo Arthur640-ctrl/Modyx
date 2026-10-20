@@ -200,3 +200,7 @@ class ModpackModRequest(BaseModel):
     mod_id: str
     version_id: str | None = None
     title: str | None = None
+
+class UpdateSettingsRequest(BaseModel):
+    setting_key: str
+    new_value: EmailStr | str | None

@@ -146,7 +146,7 @@ export default function Dashboard() {
 
             {/* Footer: Account */}
             <div className={styles.sidebarFooter}>
-            <div className={styles.accountCard}>
+            <div className={styles.accountCard} onClick={() => navigate('/dashboard/settings')} role="button">
                 <div className={styles.avatar}>
                     {account?.email?.charAt(0)?.toUpperCase() || 'U'}
                 </div>

@@ -36,3 +36,52 @@ async def get_me(request: Request, user: User = Depends(get_current_user)):
             }
         }
     }
+
+@router.post("/settings/update")
+async def update_account_settings(request: Request, data: UpdateSettingsRequest, user: User = Depends(get_current_user)):
+    if data.setting_key == "pseudo":
+        if await User.find_one({"pseudo_lower": data.new_value.lower()}):
+            raise HTTPException(400, {
+                    "error": 400,
+                    "message": "Ce pseudo existe déjà. Impossible de le modifier.",
+                })
+
+        user.pseudo_lower = data.new_value.lower()
+        user.pseudo = data.new_value
+        await user.save()
+
+        return {
+            "ok": True,
+            "message": "Pseudo actualisé."
+        }
+
+    if data.setting_key == "email":
+        if await User.find_one({"email": data.new_value}):
+            raise HTTPException(400, {
+                "error": 400,
+                "message": "Cette email existe déjà. Impossible de le modifier.",
+            })
+
+        user.email = data.new_value
+        await user.save()
+
+        return {
+            "ok": True,
+            "message": "Email actualisé."
+        }
+
+    if data.setting_key == "password":
+        hashed_password = hash_password(data.new_value)
+
+        user.password = hashed_password
+        await user.save()
+
+        return {
+            "ok": True,
+            "message": "Mot de passe actualisé."
+        }
+
+    raise HTTPException(404, {
+        "error": 404,
+        "message": "Le paramètre demandé n'est pas trouvé.",
+    })
