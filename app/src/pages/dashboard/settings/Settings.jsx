@@ -2,6 +2,7 @@ import styles from './Settings.module.css'
 import { useNavigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import { getAccount, updateAccountSettings } from '../../../utils/api/Account.api'
+import pkg from '../../../../package.json'
 
 export default function Settings() {
     const navigate = useNavigate()
@@ -145,7 +146,7 @@ export default function Settings() {
                                 </div>
 
                                 <div className={styles.field_content}>
-                                    <input type="text" className={styles.input_info} readOnly defaultValue="1.0.21" />
+                                    <input type="text" className={styles.input_info} readOnly value={pkg.version} />
                                 </div>
                                 
                             </div>
