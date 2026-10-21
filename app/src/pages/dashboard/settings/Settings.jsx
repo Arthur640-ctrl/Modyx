@@ -3,9 +3,12 @@ import { useNavigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import { getAccount, updateAccountSettings } from '../../../utils/api/Account.api'
 import pkg from '../../../../package.json'
+import { useMinecraft } from '../../../context/useMinecraft.js'
+import { FolderOpen, RefreshCw, HardDrive, CheckCircle, AlertCircle } from "lucide-react"
 
 export default function Settings() {
     const navigate = useNavigate()
+    const { config, detectedPaths, isLoading, error, modsPath, isConfigured, refreshPaths, autoDetect, pickFolder, setPath } = useMinecraft()
 
     const [account_data, set_account_data] = useState({})
     const [form_data, set_form_data] = useState({
@@ -16,6 +19,9 @@ export default function Settings() {
 
     const [active_tab, set_active_tab] = useState("general")
     const [notice_error, set_notice_error] = useState("")
+    const [mc_notice, set_mc_notice] = useState({ type: "", message: "" })
+    const [mc_saving, set_mc_saving] = useState(false)
+    const [selectedPath, set_selected_path] = useState(config?.path || "")
 
     const changed_fields = {
         pseudo: form_data.pseudo !== (account_data.pseudo ?? ""),
@@ -80,6 +86,63 @@ export default function Settings() {
         }
     }
 
+    const handle_mc_refresh = async () => {
+        set_mc_notice({ type: "info", message: "Recherche en cours..." })
+        await refreshPaths()
+        set_mc_notice({ type: "success", message: "Liste actualisée" })
+        setTimeout(() => set_mc_notice({ type: "", message: "" }), 3000)
+    }
+
+    const handle_mc_auto_detect = async () => {
+        set_mc_notice({ type: "info", message: "Auto-détection en cours..." })
+        set_mc_saving(true)
+        const result = await autoDetect()
+        set_mc_saving(false)
+        if (result) {
+            set_selected_path(result.path)
+            set_mc_notice({ type: "success", message: `Détecté : ${result.customLabel}` })
+        } else {
+            set_mc_notice({ type: "error", message: "Aucune installation trouvée" })
+        }
+        setTimeout(() => set_mc_notice({ type: "", message: "" }), 5000)
+    }
+
+    const handle_mc_pick_folder = async () => {
+        set_mc_notice({ type: "info", message: "Sélection du dossier..." })
+        const result = await pickFolder()
+        if (result) {
+            set_selected_path(result.path)
+            if (result.valid) {
+                set_mc_notice({ type: "success", message: "Dossier valide sélectionné" })
+            } else {
+                set_mc_notice({ type: "warning", message: "Dossier sélectionné (structure Minecraft non détectée)" })
+            }
+        }
+        setTimeout(() => set_mc_notice({ type: "", message: "" }), 5000)
+    }
+
+    const handle_mc_save = async () => {
+        if (!selectedPath.trim()) {
+            set_mc_notice({ type: "error", message: "Aucun chemin sélectionné" })
+            return
+        }
+        set_mc_saving(true)
+        set_mc_notice({ type: "info", message: "Sauvegarde..." })
+        const success = await setPath(selectedPath, "custom", "Dossier personnalisé")
+        set_mc_saving(false)
+        if (success) {
+            set_mc_notice({ type: "success", message: "Configuration sauvegardée" })
+        } else {
+            set_mc_notice({ type: "error", message: "Échec de la sauvegarde" })
+        }
+        setTimeout(() => set_mc_notice({ type: "", message: "" }), 5000)
+    }
+
+    const handle_mc_select_detected = (path, label, launcherType) => {
+        set_selected_path(path)
+        set_mc_notice({ type: "info", message: `Sélectionné : ${label}. Cliquez sur Enregistrer pour confirmer.` })
+    }
+
     // General
     const handle_logout = async () => {
         localStorage.removeItem("modyx_token")
@@ -128,6 +191,13 @@ export default function Settings() {
                         onClick={() => set_active_tab('account')}
                     >
                         Compte
+                    </div>
+
+                    <div
+                        className={active_tab === 'minecraft' ? styles.sidebar_tab_active : styles.sidebar_tab}
+                        onClick={() => set_active_tab('minecraft')}
+                    >
+                        Minecraft
                     </div>
 
                 </div>
@@ -240,6 +310,128 @@ export default function Settings() {
                             </div>
 
                             
+                        </section>
+                    )}
+
+                    {active_tab == "minecraft" && (
+                        <section className={styles.section}>
+                            <h2>Minecraft</h2>
+                            <p>Configuration du dossier mods pour l'installation des modpacks</p>
+
+                            <div className={styles.field}>
+                                <div className={styles.field_title}>
+                                    <p>Dossier mods actuel</p>
+                                    <span>{isConfigured ? "Configuré" : "Non configuré"}</span>
+                                </div>
+                                <div className={styles.field_content}>
+                                    {isConfigured ? (
+                                        <div className={styles.path_display}>
+                                            <HardDrive size={16} />
+                                            <code>{modsPath}</code>
+                                        </div>
+                                    ) : (
+                                        <span className={styles.empty_path}>Aucun dossier configuré</span>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className={styles.field}>
+                                <div className={styles.field_title}>
+                                    <p>Actions</p>
+                                    <span>Détecter ou choisir le dossier mods</span>
+                                </div>
+                                <div className={styles.field_content}>
+                                    <div className={styles.action_buttons}>
+                                        <button
+                                            className={styles.action_button}
+                                            onClick={handle_mc_auto_detect}
+                                            disabled={isLoading || mc_saving}
+                                        >
+                                            <RefreshCw size={16} className={isLoading ? styles.spinning : ""} />
+                                            Auto-détecter
+                                        </button>
+                                        <button
+                                            className={styles.action_button}
+                                            onClick={handle_mc_pick_folder}
+                                            disabled={mc_saving}
+                                        >
+                                            <FolderOpen size={16} />
+                                            Choisir manuellement
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {mc_notice.message && (
+                                <div className={`${styles.mc_notice} ${styles[`mc_notice_${mc_notice.type}`]}`}>
+                                    {mc_notice.type === "success" && <CheckCircle size={16} />}
+                                    {mc_notice.type === "error" && <AlertCircle size={16} />}
+                                    {mc_notice.type === "warning" && <AlertCircle size={16} />}
+                                    {mc_notice.type === "info" && <RefreshCw size={16} />}
+                                    <span>{mc_notice.message}</span>
+                                </div>
+                            )}
+
+                            {detectedPaths.length > 0 && (
+                                <div className={styles.field}>
+                                    <div className={styles.field_title}>
+                                        <p>Installations détectées</p>
+                                        <span>Cliquez pour sélectionner</span>
+                                    </div>
+                                    <div className={styles.field_content}>
+                                        <div className={styles.detected_list}>
+                                            {detectedPaths.map((detected, idx) => (
+                                                <button
+                                                    key={`${detected.path}-${idx}`}
+                                                    className={`${styles.detected_item} ${selectedPath === detected.path ? styles.detected_selected : ""}`}
+                                                    onClick={() => handle_mc_select_detected(detected.path, detected.label, detected.launcherType)}
+                                                    disabled={mc_saving}
+                                                >
+                                                    <div className={styles.detected_info}>
+                                                        <span className={styles.detected_label}>{detected.label}</span>
+                                                        <span className={styles.detected_path}>{detected.path}</span>
+                                                    </div>
+                                                    <div className={styles.detected_badges}>
+                                                        <span className={`${styles.launcher_badge} ${styles[`launcher_${detected.launcherType}`]}`}>
+                                                            {detected.launcherType}
+                                                        </span>
+                                                        {detected.valid && <CheckCircle size={14} className={styles.valid_icon} />}
+                                                    </div>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className={styles.field}>
+                                <div className={styles.field_title}>
+                                    <p>Chemin sélectionné</p>
+                                    <span>{selectedPath ? "Prêt à sauvegarder" : "Aucun chemin sélectionné"}</span>
+                                </div>
+                                <div className={styles.field_content}>
+                                    <input
+                                        type="text"
+                                        className={styles.input_info}
+                                        value={selectedPath}
+                                        onChange={(e) => set_selected_path(e.target.value)}
+                                        placeholder="Chemin vers le dossier mods..."
+                                        readOnly
+                                    />
+                                </div>
+                            </div>
+
+                            <div className={styles.field}>
+                                <div className={styles.field_content}>
+                                    <button
+                                        className={styles.save_button}
+                                        onClick={handle_mc_save}
+                                        disabled={!selectedPath.trim() || mc_saving}
+                                    >
+                                        {mc_saving ? "Sauvegarde..." : "Enregistrer la configuration"}
+                                    </button>
+                                </div>
+                            </div>
                         </section>
                     )}
 

@@ -84,6 +84,187 @@ ipcMain.handle("open-external", async (_event, url) => {
     await shell.openExternal(parsedUrl.toString());
 });
 
+const MINECRAFT_CONFIG_FILE = path.join(app.getPath("userData"), "minecraft-config.json");
+
+function getMinecraftSearchPaths() {
+    const homeDir = app.getPath("home");
+    const appData = app.getPath("appData");
+    let localAppData = null;
+    if (process.platform === "win32") {
+        try {
+            localAppData = app.getPath("localAppData");
+        } catch (e) {
+            log(`[Minecraft] Impossible de récupérer localAppData: ${e.message}`);
+        }
+    }
+    const paths = [];
+
+    if (process.platform === "win32") {
+        paths.push(
+            { path: path.join(appData, ".minecraft", "mods"), label: "Minecraft Official", launcher: "official" },
+            { path: path.join(appData, ".minecraft", "mods"), label: "TLauncher (default)", launcher: "tlauncher" }
+        );
+        if (localAppData) {
+            paths.push({ path: path.join(localAppData, "TLauncher", "games", "minecraft", "mods"), label: "TLauncher (custom)", launcher: "tlauncher" });
+        }
+
+        const curseForgeBase = path.join(homeDir, "curseforge", "minecraft", "Instances");
+        if (fs.existsSync(curseForgeBase)) {
+            fs.readdirSync(curseForgeBase).forEach(instance => {
+                paths.push({ path: path.join(curseForgeBase, instance, "mods"), label: `CurseForge: ${instance}`, launcher: "curseforge" });
+            });
+        }
+
+        const atLauncherBase = path.join(appData, "ATLauncher", "instances");
+        if (fs.existsSync(atLauncherBase)) {
+            fs.readdirSync(atLauncherBase).forEach(instance => {
+                paths.push({ path: path.join(atLauncherBase, instance, "mods"), label: `ATLauncher: ${instance}`, launcher: "atlauncher" });
+            });
+        }
+
+        const multiMCBase = path.join(appData, "MultiMC", "instances");
+        if (fs.existsSync(multiMCBase)) {
+            fs.readdirSync(multiMCBase).forEach(instance => {
+                paths.push({ path: path.join(multiMCBase, instance, ".minecraft", "mods"), label: `MultiMC: ${instance}`, launcher: "multimc" });
+            });
+        }
+
+        const prismBase = path.join(appData, "PrismLauncher", "instances");
+        if (fs.existsSync(prismBase)) {
+            fs.readdirSync(prismBase).forEach(instance => {
+                paths.push({ path: path.join(prismBase, instance, ".minecraft", "mods"), label: `Prism Launcher: ${instance}`, launcher: "prism" });
+            });
+        }
+    } else if (process.platform === "darwin") {
+        paths.push(
+            { path: path.join(homeDir, "Library", "Application Support", "minecraft", "mods"), label: "Minecraft Official", launcher: "official" },
+            { path: path.join(homeDir, "Library", "Application Support", "TLauncher", "games", "minecraft", "mods"), label: "TLauncher", launcher: "tlauncher" }
+        );
+
+        const curseForgeBase = path.join(homeDir, "Library", "Application Support", "curseforge", "minecraft", "Instances");
+        if (fs.existsSync(curseForgeBase)) {
+            fs.readdirSync(curseForgeBase).forEach(instance => {
+                paths.push({ path: path.join(curseForgeBase, instance, "mods"), label: `CurseForge: ${instance}`, launcher: "curseforge" });
+            });
+        }
+    } else {
+        paths.push(
+            { path: path.join(homeDir, ".minecraft", "mods"), label: "Minecraft Official", launcher: "official" },
+            { path: path.join(homeDir, ".local", "share", "TLauncher", "games", "minecraft", "mods"), label: "TLauncher", launcher: "tlauncher" }
+        );
+
+        const curseForgeBase = path.join(homeDir, ".local", "share", "curseforge", "minecraft", "Instances");
+        if (fs.existsSync(curseForgeBase)) {
+            fs.readdirSync(curseForgeBase).forEach(instance => {
+                paths.push({ path: path.join(curseForgeBase, instance, "mods"), label: `CurseForge: ${instance}`, launcher: "curseforge" });
+            });
+        }
+
+        const prismBase = path.join(homeDir, ".local", "share", "PrismLauncher", "instances");
+        if (fs.existsSync(prismBase)) {
+            fs.readdirSync(prismBase).forEach(instance => {
+                paths.push({ path: path.join(prismBase, instance, ".minecraft", "mods"), label: `Prism Launcher: ${instance}`, launcher: "prism" });
+            });
+        }
+    }
+
+    return paths;
+}
+
+function validateMinecraftPath(modsPath) {
+    if (!modsPath || !fs.existsSync(modsPath)) return false;
+    const parentDir = path.dirname(modsPath);
+    const versionJson = path.join(parentDir, "versions");
+    return fs.existsSync(versionJson) || fs.existsSync(path.join(parentDir, "version.json")) || fs.existsSync(modsPath);
+}
+
+function loadMinecraftConfig() {
+    try {
+        if (fs.existsSync(MINECRAFT_CONFIG_FILE)) {
+            const data = fs.readFileSync(MINECRAFT_CONFIG_FILE, "utf8");
+            return JSON.parse(data);
+        }
+    } catch (error) {
+        log(`[Minecraft] Erreur lecture config : ${error.message}`);
+    }
+    return null;
+}
+
+function saveMinecraftConfig(config) {
+    try {
+        fs.writeFileSync(MINECRAFT_CONFIG_FILE, JSON.stringify(config, null, 2), "utf8");
+        return true;
+    } catch (error) {
+        log(`[Minecraft] Erreur écriture config : ${error.message}`);
+        return false;
+    }
+}
+
+async function autoDetectAndSave() {
+    const candidates = getMinecraftSearchPaths();
+    for (const candidate of candidates) {
+        if (validateMinecraftPath(candidate.path)) {
+            const config = {
+                path: candidate.path,
+                launcherType: candidate.launcher,
+                customLabel: candidate.label,
+                savedAt: new Date().toISOString()
+            };
+            saveMinecraftConfig(config);
+            log(`[Minecraft] Auto-détecté : ${candidate.label} (${candidate.path})`);
+            return config;
+        }
+    }
+    log("[Minecraft] Aucune installation valide trouvée lors de l'auto-détection");
+    return null;
+}
+
+ipcMain.handle("minecraft:find-paths", async () => {
+    const candidates = getMinecraftSearchPaths();
+    const results = candidates.map(c => ({
+        path: c.path,
+        label: c.label,
+        launcherType: c.launcher,
+        exists: fs.existsSync(c.path),
+        valid: validateMinecraftPath(c.path)
+    })).filter(r => r.exists || r.valid);
+    return { success: true, data: results };
+});
+
+ipcMain.handle("minecraft:validate-path", async (_event, modsPath) => {
+    const valid = validateMinecraftPath(modsPath);
+    return { success: true, valid };
+});
+
+ipcMain.handle("minecraft:get-config", async () => {
+    const config = loadMinecraftConfig();
+    return { success: true, data: config };
+});
+
+ipcMain.handle("minecraft:save-config", async (_event, config) => {
+    const saved = saveMinecraftConfig(config);
+    return { success: saved, data: saved ? config : null };
+});
+
+ipcMain.handle("minecraft:pick-folder", async () => {
+    const result = await dialog.showOpenDialog(mainWindow, {
+        title: "Sélectionner le dossier mods de Minecraft",
+        properties: ["openDirectory"],
+        buttonLabel: "Sélectionner"
+    });
+    if (!result.canceled && result.filePaths.length > 0) {
+        const selectedPath = result.filePaths[0];
+        const valid = validateMinecraftPath(selectedPath);
+        return { success: true, path: selectedPath, valid };
+    }
+    return { success: false, canceled: true };
+});
+
+ipcMain.handle("minecraft:auto-detect", async () => {
+    const config = await autoDetectAndSave();
+    return { success: !!config, data: config };
+});
+
 ipcMain.handle("get-update-state", () => updateState);
 
 ipcMain.handle("check-for-updates", async (event, isManual = false) => {
@@ -339,8 +520,20 @@ function createWindow() {
     win.loadFile(indexPath);
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
     log("[App] Electron est prêt.");
+
+    try {
+        const existingConfig = loadMinecraftConfig();
+        if (!existingConfig) {
+            log("[Minecraft] Aucune config trouvée, lancement auto-détection...");
+            await autoDetectAndSave();
+        } else {
+            log(`[Minecraft] Config existante : ${existingConfig.customLabel} (${existingConfig.path})`);
+        }
+    } catch (error) {
+        log(`[Minecraft] Erreur lors de l'initialisation : ${error.message}`);
+    }
 
     if (!isDev) {
         setupAutoUpdater();

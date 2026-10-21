@@ -10,6 +10,7 @@ import Modpacks from "./pages/dashboard/modpacks/Modpacks.jsx"
 import Editor from "./pages/dashboard/modpacks/editor/Editor.jsx"
 import Settings from "./pages/dashboard/settings/Settings.jsx"
 import UpdateNotification from "./components/UpdateNotification.jsx"
+import { MinecraftProvider } from "./context/MinecraftContext.jsx"
 
 function ProtectedDashboardLayout() {
     const [isChecking, setIsChecking] = useState(true)
@@ -174,7 +175,8 @@ export default function App() {
     const showCheckingToast = update.status === "checking" && update.isManualCheck
 
     return (
-        <>
+        <MinecraftProvider>
+            <>
             <ReactRouter.Routes>
                 <ReactRouter.Route path='/' element={<Auth />} />
                 <ReactRouter.Route path='/dashboard' element={<ProtectedDashboardLayout />}>
@@ -202,6 +204,7 @@ export default function App() {
                     onCheckNow={() => checkForUpdates(true)}
                 />
             )}
-        </>
+            </>
+        </MinecraftProvider>
     )
 }

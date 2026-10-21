@@ -260,3 +260,191 @@
     border-color: rgb(184, 61, 61);
     background: rgba(134, 63, 63, 0.274);
 }
+
+.path_display {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background-color: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 13px;
+    color: var(--text);
+}
+
+.path_display code {
+    font-family: monospace;
+    font-size: 12px;
+    color: var(--text-muted);
+    word-break: break-all;
+    max-width: 400px;
+}
+
+.empty_path {
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+.action_buttons {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.action_button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border: 1px solid var(--border);
+    background-color: var(--input-bg);
+    color: var(--text);
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.action_button:hover:not(:disabled) {
+    border-color: var(--accent);
+    background: rgba(115, 160, 79, 0.1);
+    color: var(--accent);
+}
+
+.action_button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.spinning {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.mc_notice {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    margin: 10px 0;
+}
+
+.mc_notice_success {
+    background: rgba(115, 160, 79, 0.15);
+    border: 1px solid var(--accent);
+    color: var(--accent);
+}
+
+.mc_notice_error {
+    background: rgba(184, 61, 61, 0.15);
+    border: 1px solid rgb(184, 61, 61);
+    color: rgb(184, 61, 61);
+}
+
+.mc_notice_warning {
+    background: rgba(255, 193, 7, 0.15);
+    border: 1px solid #ffc107;
+    color: #ffc107;
+}
+
+.mc_notice_info {
+    background: rgba(33, 150, 243, 0.15);
+    border: 1px solid #2196f3;
+    color: #2196f3;
+}
+
+.detected_list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.detected_item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    border: 1px solid var(--border);
+    background-color: var(--input-bg);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: var(--transition);
+    text-align: left;
+    width: 100%;
+}
+
+.detected_item:hover:not(:disabled) {
+    border-color: var(--accent);
+    background: rgba(115, 160, 79, 0.08);
+}
+
+.detected_item:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.detected_selected {
+    border-color: var(--accent);
+    background: rgba(115, 160, 79, 0.12);
+}
+
+.detected_info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+    min-width: 0;
+}
+
+.detected_label {
+    font-weight: 500;
+    color: var(--text);
+    font-size: 13px;
+}
+
+.detected_path {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-family: monospace;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.detected_badges {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.launcher_badge {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 4px;
+    text-transform: uppercase;
+}
+
+.launcher_official { background: rgba(33, 150, 243, 0.2); color: #2196f3; }
+.launcher_tlauncher { background: rgba(255, 152, 0, 0.2); color: #ff9800; }
+.launcher_curseforge { background: rgba(255, 102, 0, 0.2); color: #ff6600; }
+.launcher_atlauncher { background: rgba(156, 39, 176, 0.2); color: #9c27b0; }
+.launcher_multimc { background: rgba(0, 188, 212, 0.2); color: #00bcd4; }
+.launcher_prism { background: rgba(76, 175, 80, 0.2); color: #4caf50; }
+.launcher_custom { background: rgba(115, 160, 79, 0.2); color: var(--accent); }
+
+.valid_icon {
+    color: var(--accent);
+    flex-shrink: 0;
+}

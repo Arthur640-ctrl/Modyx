@@ -11,7 +11,7 @@ from core.auth_security import *
 
 router = APIRouter(prefix="/auth")
 EMAIL_REGEX = re.compile(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$")
-EMAIL_VERIFICATION = False
+EMAIL_VERIFICATION = True
 
 @router.post("/register")
 @limiter.limit("5/minute")

@@ -56,43 +56,22 @@ def decode_token(token: str) -> dict | None:
         return None
 
 
-async def send_verification_code(
-    email: str,
-    code: str
-) -> bool:
-
+async def send_verification_code(email: str, code: str) -> bool:
     try:
-        await resend.Emails.send_async({
-            "from": "Modyx <onboarding@resend.dev>",
+        result = await resend.Emails.send_async({
+            "from": "Modyx <verification_code@modyx.gleeze.com>",
             "to": [email],
-            "subject": "Votre code de vérification Modyx",
-            "html": f"""
-                <div>
-                    <h2>Vérification de votre adresse email</h2>
-
-                    <p>Votre code de vérification est :</p>
-
-                    <h1 style="
-                        font-size: 32px;
-                        letter-spacing: 8px;
-                    ">
-                        {code}
-                    </h1>
-
-                    <p>
-                        Ce code expire dans 10 minutes.
-                    </p>
-
-                    <p>
-                        Si vous n'êtes pas à l'origine de cette demande,
-                        vous pouvez ignorer cet email.
-                    </p>
-                </div>
-            """
+            "subject": "Modyx",
+            "text": (
+                "Bonjour,\n\n"
+                f"Voici le code demandé : {code}\n\n"
+                "Il expire dans 10 minutes."
+            )
         })
 
+        print("Réponse Resend :", result)
         return True
 
     except Exception as e:
-        print(f"[Email] Erreur envoi : {e}")
+        print(f"[Email] Erreur Resend : {e}")
         return False

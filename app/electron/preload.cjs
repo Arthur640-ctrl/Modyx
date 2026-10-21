@@ -21,5 +21,14 @@ contextBridge.exposeInMainWorld("modyx", {
     onUpdateState: (listener) => subscribe("update-state", listener),
     onUpdateAvailable: (listener) => subscribe("update-available", listener),
     onUpdateProgress: (listener) => subscribe("update-progress", listener),
-    onUpdateDownloaded: (listener) => subscribe("update-downloaded", listener)
+    onUpdateDownloaded: (listener) => subscribe("update-downloaded", listener),
+
+    minecraft: {
+        findPaths: () => ipcRenderer.invoke("minecraft:find-paths"),
+        validatePath: (modsPath) => ipcRenderer.invoke("minecraft:validate-path", modsPath),
+        getConfig: () => ipcRenderer.invoke("minecraft:get-config"),
+        saveConfig: (config) => ipcRenderer.invoke("minecraft:save-config", config),
+        pickFolder: () => ipcRenderer.invoke("minecraft:pick-folder"),
+        autoDetect: () => ipcRenderer.invoke("minecraft:auto-detect")
+    }
 });

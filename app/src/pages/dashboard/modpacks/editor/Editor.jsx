@@ -10,7 +10,10 @@ import {
     Settings,
     Share2,
     Sparkles,
-    Trash2
+    Trash2,
+    HardDrive,
+    CheckCircle,
+    AlertCircle
 } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom"
@@ -25,6 +28,7 @@ import {
 } from "../../../../utils/api/Modpacks.api"
 import User_Message from "../../../../components/User_Message.jsx"
 import Assistant_Message from "../../../../components/Assistant_Message.jsx"
+import { useMinecraft } from "../../../../context/useMinecraft.js"
 
 export default function Editor() {
     // Config
@@ -44,6 +48,8 @@ export default function Editor() {
     const [mod_search_query, set_mod_search_query] = useState("")
     const [mod_search_results, set_mod_search_results] = useState([])
     const [mod_search_loading, set_mod_search_loading] = useState(false)
+
+    const { modsPath, isConfigured, isLoading: mcLoading } = useMinecraft()
 
     function scroll_chat_to_bottom(force = false) {
         const chat_messages = chat_messages_ref.current
@@ -539,7 +545,7 @@ export default function Editor() {
                             />
                         )}
 
-                        {stream_messages.length > 0 && (
+                        {is_streaming > 0 && (
                             <Assistant_Message
                                 agent_run={stream_messages}
                                 summary={null}
@@ -565,7 +571,7 @@ export default function Editor() {
                                     send_prompt()
                                 }
                             }}
-                            placeholder="Écris ton prompt..."
+                            placeholder="Demande ce que tu veux..."
                         />
 
                         <button

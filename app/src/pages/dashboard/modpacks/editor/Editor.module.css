@@ -97,6 +97,41 @@
     color: var(--text);
 }
 
+.mc_status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.mc_status_loading {
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.mc_status_ready {
+    color: var(--accent);
+    background: rgba(115, 160, 79, 0.12);
+    border: 1px solid rgba(115, 160, 79, 0.3);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.mc_status_missing {
+    color: rgb(184, 61, 61);
+    background: rgba(184, 61, 61, 0.12);
+    border: 1px solid rgba(184, 61, 61, 0.3);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
 /* Editor */
 .editor_container {
     display: flex;
