@@ -362,7 +362,7 @@ export default function Settings() {
                                 </div>
                             </div>
 
-                            {mc_notice.message && (
+                            {/* {mc_notice.message && (
                                 <div className={`${styles.mc_notice} ${styles[`mc_notice_${mc_notice.type}`]}`}>
                                     {mc_notice.type === "success" && <CheckCircle size={16} />}
                                     {mc_notice.type === "error" && <AlertCircle size={16} />}
@@ -402,9 +402,9 @@ export default function Settings() {
                                         </div>
                                     </div>
                                 </div>
-                            )}
+                            )} */}
 
-                            <div className={styles.field}>
+                            {/* <div className={styles.field}>
                                 <div className={styles.field_title}>
                                     <p>Chemin sélectionné</p>
                                     <span>{selectedPath ? "Prêt à sauvegarder" : "Aucun chemin sélectionné"}</span>
@@ -419,7 +419,7 @@ export default function Settings() {
                                         readOnly
                                     />
                                 </div>
-                            </div>
+                            </div> */}
 
                             <div className={styles.field}>
                                 <div className={styles.field_content}>

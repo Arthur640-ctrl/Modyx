@@ -6,26 +6,11 @@ import { ChevronRight, Dot, Wrench, MessageSquare, ListChecks } from "lucide-rea
 export default function Assistant_Message({ agent_run, summary, stream = false }) {
 
     const [agent_steps_visible, set_agent_steps_visible] = useState(stream)
-    const [waiting_stream, set_waiting_stream] = useState()
     const steps = agent_run
 
     useEffect(() => {
         set_agent_steps_visible(stream)
     }, [stream])
-
-    useEffect(() => {
-        if (!stream) return
-
-        if (steps.length > 0) {
-            set_waiting_stream(false)
-
-            const timeout = setTimeout(() => {
-                set_waiting_stream(true)
-            }, 4000)
-
-            return () => clearTimeout(timeout)
-        }
-    }, [steps.length, stream])
 
     return (
         <div className={styles.message}>
