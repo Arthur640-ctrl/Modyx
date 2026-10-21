@@ -15,7 +15,7 @@
 /* Grille principale */
 .grid {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1fr;
+  grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
   gap: 40px;
   margin-bottom: 40px;
 }
@@ -109,11 +109,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  background-color: var(--background-1);
-  border: 1px solid var(--border);
-  padding: 12px 18px;
-  border-radius: 8px;
-  margin-bottom: 30px;
+  margin: 15px 0;
 }
 
 .disclaimer_icon {
@@ -134,7 +130,6 @@
   align-items: center;
   justify-content: space-between;
   padding-top: 20px;
-  border-top: 1px solid var(--border);
   font-size: 0.85rem;
   color: var(--text-muted);
 }
@@ -162,4 +157,8 @@
     flex-direction: column;
     align-items: flex-start;
   }
+}
+
+.separation_bar {
+    border-top: 1px solid var(--border);
 }

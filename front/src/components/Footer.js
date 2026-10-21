@@ -17,25 +17,10 @@ export default function Footer() {
               <span className={styles.brand_title}>Modyx</span>
             </Link>
             <p className={styles.brand_desc}>
-              L'assistant IA qui génère et optimise vos modpacks Minecraft sur-mesure, sans crash ni prise de tête.
+              L'assistant IA qui génère des modpacks Minecraft sur-mesure, sans crash ni prise de tête.
             </p>
-            
-            {/* RÉSEAUX & CONTACT */}
-            <div className={styles.socials}>
-                <ul className={styles.col_list}>
-                    <li><a 
-                        href="https://discord.gg/6j7PbnDswq" 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        title="Rejoindre notre Discord"
-                    >
-                        Discord
-                    </a></li>
-                </ul>
-            </div>
           </div>
 
-          {/* COLONNE 2 : PRODUIT */}
           <div className={styles.col}>
             <h4 className={styles.col_title}>Produit</h4>
             <ul className={styles.col_list}>
@@ -46,7 +31,21 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* COLONNE 3 : RESSOURCES & SUPPORT */}
+          <div className={styles.col}>
+            <h4 className={styles.col_title}>Communication</h4>
+            <ul className={styles.col_list}>
+              
+              <li><a 
+                    href="https://discord.gg/6j7PbnDswq" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    title="Rejoindre notre Discord"
+                >
+                    Discord
+                </a></li>
+            </ul>
+          </div>
+
           <div className={styles.col}>
             <h4 className={styles.col_title}>Ressources</h4>
             <ul className={styles.col_list}>
@@ -56,7 +55,6 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* COLONNE 4 : LÉGAL & SÉCURITÉ */}
           <div className={styles.col}>
             <h4 className={styles.col_title}>Légal</h4>
             <ul className={styles.col_list}>
@@ -69,6 +67,8 @@ export default function Footer() {
 
         </div>
 
+        <div className={styles.separation_bar}></div>
+
         {/* DISCLAIMER MINECRAFT RAPIDE */}
         <div className={styles.disclaimer_bar}>
           <ShieldAlert size={16} className={styles.disclaimer_icon} />
@@ -77,6 +77,8 @@ export default function Footer() {
             Minecraft est une marque déposée de Mojang Synergies AB.
           </p>
         </div>
+
+        <div className={styles.separation_bar}></div>
 
         {/* BAS DU FOOTER : COPYRIGHT */}
         <div className={styles.bottom_bar}>
