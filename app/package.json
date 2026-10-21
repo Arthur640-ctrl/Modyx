@@ -7,24 +7,18 @@
   "version": "0.0.0",
   "main": "electron/main.cjs",
   "type": "module",
-
   "scripts": {
     "dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\"",
     "dev:vite": "vite",
     "dev:electron": "electron .",
-
     "build": "vite build",
-
     "build:electron": "npm run build && electron-builder",
-
     "build:win": "npm run build && electron-builder --win",
     "build:mac": "npm run build && electron-builder --mac",
     "build:linux": "npm run build && electron-builder --linux",
-
     "preview": "vite preview",
     "lint": "eslint ."
   },
-
   "dependencies": {
     "electron-updater": "^7.0.0-alpha.7",
     "lucide-react": "^1.32.0",
@@ -34,7 +28,6 @@
     "react-router-dom": "^7.18.1",
     "remark-gfm": "^4.0.1"
   },
-
   "devDependencies": {
     "@eslint/js": "^9.39.5",
     "@types/react": "^19.2.17",
@@ -51,21 +44,17 @@
     "vite": "^8.1.1",
     "wait-on": "^9.1.0"
   },
-
   "build": {
     "appId": "com.gleeze.modyx",
     "productName": "Modyx",
-
     "directories": {
       "output": "dist-electron"
     },
-
     "files": [
       "dist/**/*",
       "electron/**/*",
       "package.json"
     ],
-
     "win": {
       "target": [
         {
@@ -76,26 +65,22 @@
         }
       ]
     },
-
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true
     },
-
     "mac": {
       "target": [
         "dmg"
       ],
       "category": "public.app-category.productivity"
     },
-
     "linux": {
       "target": [
         "AppImage"
       ],
       "category": "Utility"
     },
-
     "publish": [
       {
         "provider": "github",

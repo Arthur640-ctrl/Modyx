@@ -264,6 +264,19 @@
     padding-right: 4px;
 }
 
+.mod_list::-webkit-scrollbar {
+    width: 8px;
+}
+
+.mod_list::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.mod_list::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.24);
+    border-radius: 999px;
+}
+
 .mod_row {
     display: flex;
     align-items: center;
@@ -413,6 +426,19 @@
     min-height: 120px;
     max-height: 420px;
     padding-right: 4px;
+}
+
+.mod_modal_list::-webkit-scrollbar {
+    width: 8px;
+}
+
+.mod_modal_list::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.mod_modal_list::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.24);
+    border-radius: 999px;
 }
 
 .mod_modal_item {

@@ -221,6 +221,7 @@ export default function Home() {
                                         ? styles.modpack_loaded
                                         : ""
                                 }`}
+                                onClick={() => switch_to_editor(modpack.id)}
                             >
                                 <div className={styles.modpack_logo_container}>
                                     <div>

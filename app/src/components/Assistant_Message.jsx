@@ -1,4 +1,5 @@
 import ReactMarkdown from "react-markdown"
+import remarkGfm from "remark-gfm"
 import styles from "./Assistant_Message.module.css"
 import { useEffect, useState } from "react"
 import { ChevronRight, Dot, Wrench, MessageSquare, ListChecks } from "lucide-react"
@@ -54,7 +55,7 @@ export default function Assistant_Message({ agent_run, summary, stream = false }
                                                     </div>
 
                                                     <div className={styles.step_content_content_content}>
-                                                        <ReactMarkdown>
+                                                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
                                                             {message.content}
                                                         </ReactMarkdown>
                                                     </div>
@@ -98,7 +99,7 @@ export default function Assistant_Message({ agent_run, summary, stream = false }
                                                 </div>
 
                                                 <div className={styles.step_content_content_content}>
-                                                    <ReactMarkdown>
+                                                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
                                                         {message.content}
                                                     </ReactMarkdown>
                                                 </div>
@@ -120,7 +121,7 @@ export default function Assistant_Message({ agent_run, summary, stream = false }
                 
                 {!stream && (
                     <div className={styles.summary}>
-                        <ReactMarkdown>
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
                             {summary || ""}
                         </ReactMarkdown>
                     </div>
@@ -128,7 +129,7 @@ export default function Assistant_Message({ agent_run, summary, stream = false }
 
                 {stream && (
                     <div className={styles.summary}>
-                        <ReactMarkdown>
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
                             {steps.find(step => step.role === "summary")?.content || ""}
                         </ReactMarkdown>
                     </div>
