@@ -8,7 +8,6 @@ from core.deps import get_current_user
 
 router = APIRouter(prefix="/account")
 
-
 @router.get("/me")
 async def get_me(request: Request, user: User = Depends(get_current_user)):
     subscription = await UserSubscription.find_one(UserSubscription.user_id == user.id)

@@ -11,7 +11,7 @@ from generator.agent_run import *
 from generator.services.llm_router import router
 
 # Routers
-from routes import auth, account, modpacks, utils, global_route
+from routes import auth, account, modpacks, utils, global_route, subscription
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -65,6 +65,7 @@ app.include_router(account.router)
 app.include_router(modpacks.router)
 app.include_router(utils.router)
 app.include_router(global_route.router)
+app.include_router(subscription.router)
 
 @app.get("/")
 async def root():

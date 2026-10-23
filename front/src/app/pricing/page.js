@@ -1,7 +1,7 @@
 
-"use client";
+"use client"
 
-import { useEffect, useState } from "react";
+import { useEffect, useState } from "react"
 import {
   ArrowRight,
   Check,
@@ -10,11 +10,11 @@ import {
   Sparkles,
   Zap,
   X
-} from "lucide-react";
-
-import Header from "../../components/Header";
-import Footer from "../../components/Footer";
-import styles from "./page.module.css";
+} from "lucide-react"
+import { useSearchParams } from "next/navigation"
+import Header from "../../components/Header"
+import Footer from "../../components/Footer"
+import styles from "./page.module.css"
 
 const formatPrice = (price) =>
     new Intl.NumberFormat("fr-FR", {
@@ -26,13 +26,26 @@ function formatCredits(amount) {
     return new Intl.NumberFormat("fr-FR").format(amount)
 }
 
-function PricingCard({ plan }) {
-  const isPro = plan.name?.toLowerCase() === "starter"
-  const isFree = Number(plan.price) === 0
+function PricingCard({ plan, is_user, user_plan }) {
+    const recommended = plan.id === "starter"
+    const possessed = is_user === true && user_plan == plan.id
+
+    var accent = false
+
+    if (is_user === false || !is_user) {
+        accent = recommended
+    } else {
+        accent = possessed
+    }
+
+    // Correction ici : on affiche les variables locales, pas plan.possessed ou plan.accent
+    console.log(`Pour ${plan.id} | is_user : ${is_user} | Recommended : ${recommended} | Possessed : ${possessed} | Accent : ${accent}`)
+
+    const isFree = Number(plan.price) === 0
 
   return (
     <article
-      className={`${styles.plan} ${isPro ? styles.plan_featured : ""}`}
+      className={`${styles.plan} ${accent ? styles.plan_featured : ""}`}
     >
       <div className={styles.plan_top}>
         <div>
@@ -43,10 +56,17 @@ function PricingCard({ plan }) {
             </p>
           )}
         </div>
+        
 
-        {isPro && (
+        {recommended && is_user == false && (
           <span className={styles.recommended}>
             Recommandé
+          </span>
+        )}
+
+        {is_user == true && user_plan == plan.id && (
+          <span className={styles.recommended}>
+            Vous possédez
           </span>
         )}
       </div>
@@ -91,25 +111,36 @@ function PricingCard({ plan }) {
 
       <div className={styles.plan_action}>
         {isFree ? (
-          <span className={styles.free_label}>
-            Offre gratuite
-          </span>
+            is_user === true && user_plan == plan.id ? (
+                <span className={styles.free_label}>
+                    Vous possédez
+                </span>
+            ) : (
+                <span className={styles.free_label}>
+                    Offre gratuite
+                </span>
+            )
+            
         ) : (
-          <button
-            type="button"
-            className={`${styles.button} ${
-              isPro ? styles.button_primary : styles.button_secondary
-            }`}
-            disabled
-            title="Le paiement sera disponible prochainement."
-          >
-            Bientôt disponible
-            <ArrowRight size={16} />
-          </button>
+            is_user === true && user_plan == plan.id ? (
+                <div className={styles.plan_possessed}>
+                    Vous possédez
+                </div>
+            ) : (
+                <button
+                    type="button"
+                    className={`${styles.button} ${styles.button_secondary}`}
+                    disabled
+                    title="Le paiement sera disponible prochainement."
+                >
+                    Bientôt disponible
+                    <ArrowRight size={16} />
+                </button>
+            )
         )}
       </div>
     </article>
-  );
+  )
 }
 
 function BundleRow({ bundle }) {
@@ -149,7 +180,7 @@ function BundleRow({ bundle }) {
         <ArrowRight size={15} />
       </button>
     </article>
-  );
+  )
 }
 
 function PricingSkeleton() {
@@ -158,162 +189,64 @@ function PricingSkeleton() {
       <span className={styles.loading_dot} />
       Chargement des offres…
     </div>
-  );
+  )
 }
 
 export default function PricingPage() {
-  const [subscriptions, setSubscriptions] = useState([]);
-  const [bundles, setBundles] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
 
-  useEffect(() => {
-    const controller = new AbortController();
-
-    async function loadPricing() {
-    //   try {
-    //     setLoading(true);
-    //     setError("");
-
-    //     const response = await fetch(API_URL, {
-    //       signal: controller.signal,
-    //       headers: {
-    //         Accept: "application/json",
-    //       },
-    //     });
-
-    //     if (!response.ok) {
-    //       throw new Error("Impossible de récupérer les offres.");
-    //     }
-
-    //     const data = await response.json();
-
-    //     setSubscriptions(
-    //       Array.isArray(data.subscriptions) ? data.subscriptions : []
-    //     );
-
-    //     setBundles(
-    //       Array.isArray(data.bundles) ? data.bundles : []
-    //     );
-    //   } catch (err) {
-    //     if (err.name !== "AbortError") {
-    //       setError(
-    //         "Les offres ne peuvent pas être chargées pour le moment."
-    //       );
-    //     }
-    //   } finally {
-    //     if (!controller.signal.aborted) {
-    //       setLoading(false);
-    //     }
-    //   }
-    }
-
-    setBundles([
-        {
-            "id": "emergency",
-            "name": "Ravitaillement d'urgence",
-            "price": 2.99,
-            "credits": 50
-        },
-        {
-            "id": "small",
-            "name": "Petite soif",
-            "price": 4.99,
-            "credits": 100
-        },
-        {
-            "id": "large",
-            "name": "Grande soif",
-            "price": 10.99,
-            "credits": 250
-        }
-    ])
-
+    const search_params = useSearchParams()
     
-    setSubscriptions([
-        {
-            "id": "free",
-            "name": "Free",
-            "price": 0,
-            "credits": 50,
-            "credits_period": "one_time",
-            "description": "Pour découvrir Modyx",
-            "features": [
-                {
-                    "included": true,
-                    "content": "Fonctionnalités de base",
-                },
-                {
-                    "included": true,
-                    "content": "50 crédits offerts, non renouvelables",
-                },
-                {
-                    "included": false,
-                    "content": "Accés prioritaire lors de la génération",
-                },
-                {
-                    "included": false,
-                    "content": "Accés prioritaire au support",
-                }
-            ]
-        },
-        {
-            "id": "starter",
-            "name": "Starter",
-            "price": 4.99,
-            "credits": 150,
-            "credits_period": "monthly",
-            "description": "Pour créer régulièrement",
-            "features": [
-                {
-                    "included": true,
-                    "content": "Fonctionnalités de base",
-                },
-                {
-                    "included": true,
-                    "content": "150 crédits, renouvelés tout les mois",
-                },
-                {
-                    "included": true,
-                    "content": "Accés prioritaire lors de la génération",
-                },
-                {
-                    "included": true,
-                    "content": "Accés prioritaire au support",
-                }
-            ]
-        },
-        {
-            "id": "pro",
-            "name": "Pro",
-            "price": 14.99,
-            "credits": 500,
-            "credits_period": "monthly",
-            "description": "Pour aller plus loin",
-            "features": [
-                {
-                    "included": true,
-                    "content": "Fonctionnalités avancées",
-                },
-                {
-                    "included": true,
-                    "content": "500 crédits, renouvelés tout les mois",
-                },
-                {
-                    "included": true,
-                    "content": "Accés prioritaire lors de la génération",
-                },
-                {
-                    "included": true,
-                    "content": "Accés prioritaire au support",
-                }
-            ]
-        }
-    ])
-    // loadPricing();
+    const [subscriptions, setSubscriptions] = useState([])
+    const [bundles, setBundles] = useState([])
+    const [loading, setLoading] = useState(false)
+    const [error, setError] = useState("")
 
-    return () => controller.abort();
-    }, [])
+    const [is_user, set_is_user] = useState(false)
+    const [user_id, set_user_id] = useState("")
+    const [user_plan, set_user_plan] = useState("")
+
+    useEffect(() => {
+        const controller = new AbortController()
+        const url_user_id = search_params.get("user_id")
+
+        async function loadData() {
+            try {
+                setLoading(true)
+
+                // 1. Charger l'utilisateur si l'ID existe dans l'URL
+                if (url_user_id) {
+                    set_is_user(true)
+                    const resUser = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/subscription/user/${url_user_id}`, {
+                        signal: controller.signal
+                    })
+                    if (resUser.ok) {
+                        const userData = await resUser.json()
+                        set_user_plan(userData.plan_code)
+                    }
+                }
+
+                // 2. Charger les plans
+                const resPlans = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/subscription/list`, {
+                    signal: controller.signal
+                })
+                const plansData = await resPlans.json()
+
+                setBundles(plansData.bundles || [])
+                setSubscriptions(plansData.plans || [])
+
+            } catch (err) {
+                if (err.name !== 'AbortError') {
+                    setError("Erreur lors du chargement des données.")
+                }
+            } finally {
+                setLoading(false)
+            }
+        }
+
+        loadData()
+
+        return () => controller.abort()
+    }, [search_params])
 
     return (
         <div className={styles.page}>
@@ -365,12 +298,12 @@ export default function PricingPage() {
                     ) : subscriptions.length > 0 ? (
                         <div className={styles.plans_grid}>
                         {subscriptions.map((plan) => (
-                            <PricingCard key={plan.id} plan={plan} />
+                            <PricingCard key={plan.id} plan={plan} is_user={is_user} user_plan={user_plan} />
                         ))}
                         </div>
                     ) : (
                         <p className={styles.empty}>
-                        Aucune offre d’abonnement n’est disponible pour le moment.
+                            Aucune offre d’abonnement n’est disponible pour le moment.
                         </p>
                     )}
                 </section>

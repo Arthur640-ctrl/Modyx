@@ -232,6 +232,24 @@
   padding-top: 28px;
 }
 
+.plan_possessed {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    min-height: 42px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    font: inherit;
+    font-size: 0.8rem;
+    font-weight: 600;
+
+    background-color: var(--accent);
+    border-color: var(--accent);
+}
+
 .button {
   display: inline-flex;
   align-items: center;

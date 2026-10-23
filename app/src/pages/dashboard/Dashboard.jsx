@@ -125,7 +125,7 @@ export default function Dashboard() {
                     <span className={styles.tooltipContainer}>
                         <span>Crédits utilisés (abonnement)</span>
                         <span className={styles.tooltip} role='tooltip'>
-                            Utilisation de l&apos;abonnement actuel, les crédits ajoutés via les bundles n&apos;apparaissent pas et ne sont pas comptabilisés ici
+                            Utilisation de l'abonnement actuel, les crédits ajoutés via les bundles n&apos;apparaissent pas et ne sont pas comptabilisés ici
                         </span>
                     </span>
                     <strong>{plan_credits_usage_percent} %</strong>
