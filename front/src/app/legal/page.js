@@ -38,9 +38,9 @@ export default function LegalPage() {
 
           <div className={styles.info_card}>
             <h3>Éditeur du site</h3>
-            <p><strong>Nom / Développeur :</strong> [Votre Prénom Nom] (Projet indépendant)</p>
-            <p><strong>Adresse de contact :</strong> [votre-email@domaine.com]</p>
-            <p><strong>Statut :</strong> [Éditeur particulier à titre non professionnel / Micro-entreprise [Nom] - SIRET : XXXXXXXXXXXXXX]</p>
+            <p><strong>Nom / Développeur :</strong> Merienne Arthur (Projet indépendant)</p>
+            <p><strong>Adresse de contact :</strong> arthur.merienne57@gmail.com</p>
+            <p><strong>Statut :</strong> Éditeur particulier à titre non professionnel</p>
           </div>
 
           <div className={styles.info_card}>

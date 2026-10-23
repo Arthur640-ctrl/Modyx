@@ -49,9 +49,7 @@ export default function Footer() {
           <div className={styles.col}>
             <h4 className={styles.col_title}>Ressources</h4>
             <ul className={styles.col_list}>
-              <li><Link href="/faq">F.A.Q</Link></li>
               <li><Link href="/support">Support & Aide</Link></li>
-              <li><Link href="/about">À propos</Link></li>
             </ul>
           </div>
 
