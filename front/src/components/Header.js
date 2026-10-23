@@ -1,51 +1,107 @@
-// src/components/Header.js
-'use client' // Requis car on utilise l'état local pour le dropdown sur mobile/desktop
+'use client'
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Download, ChevronDown, HelpCircle, FileText, Shield, Terminal } from 'lucide-react'
+import { Download, Menu, X } from 'lucide-react'
 import styles from './Header.module.css'
 
+const navLinks = [
+  { href: '/', label: 'Accueil' },
+  { href: '/download', label: 'Télécharger' },
+  { href: '/pricing', label: 'Tarifs' },
+  { href: '/about', label: 'À propos' },
+]
+
 export default function Header() {
-  const [dropdownOpen, setDropdownOpen] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
+
+  function closeMenu() {
+    setMenuOpen(false)
+  }
 
   return (
     <header className={styles.header}>
       <div className={styles.container}>
-        
-        {/* LOGO / ACCUEIL */}
-        <Link href="/" className={styles.brand}>
+        {/* Logo */}
+        <Link
+          href="/"
+          className={styles.brand}
+          onClick={closeMenu}
+          aria-label="Modyx — Accueil"
+        >
           <span className={styles.brand_title}>Modyx</span>
         </Link>
 
-        {/* NAVIGATION PRINCIPALE */}
-        <nav className={styles.nav}>
-          <Link href="/" className={styles.nav_link}>
-            Accueil
-          </Link>
-
-          <Link href="/download" className={styles.nav_link}>
-            Télécharger
-          </Link>
-          
-          <Link href="/pricing" className={styles.nav_link}>
-            Tarifs
-          </Link>
-
-          <Link href="/about" className={styles.nav_link}>
-            À propos
-          </Link>
-
+        {/* Navigation desktop */}
+        <nav className={styles.nav} aria-label="Navigation principale">
+          {navLinks.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className={styles.nav_link}
+            >
+              {link.label}
+            </Link>
+          ))}
         </nav>
 
-        {/* CTA BOUTON DROIT */}
+        {/* Actions desktop */}
         <div className={styles.actions}>
           <Link href="/download" className={styles.btn_download}>
-            <Download size={16} />
+            <Download size={16} aria-hidden="true" />
             <span>Télécharger</span>
           </Link>
         </div>
 
+        {/* Bouton menu mobile */}
+        <button
+          type="button"
+          className={styles.menu_toggle}
+          onClick={() => setMenuOpen((open) => !open)}
+          aria-label={menuOpen ? 'Fermer le menu' : 'Ouvrir le menu'}
+          aria-expanded={menuOpen}
+          aria-controls="mobile-navigation"
+        >
+          {menuOpen ? (
+            <X size={22} />
+          ) : (
+            <Menu size={22} />
+          )}
+        </button>
+      </div>
+
+      {/* Navigation mobile */}
+      <div
+        id="mobile-navigation"
+        className={`${styles.mobile_menu} ${
+          menuOpen ? styles.mobile_menu_open : ''
+        }`}
+        aria-hidden={!menuOpen}
+        inert={!menuOpen}
+      >
+        <nav className={styles.mobile_nav} aria-label="Navigation mobile">
+          {navLinks.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className={styles.mobile_nav_link}
+              onClick={closeMenu}
+              tabIndex={menuOpen ? 0 : -1}
+            >
+              {link.label}
+            </Link>
+          ))}
+
+          <Link
+            href="/download"
+            className={styles.mobile_download}
+            onClick={closeMenu}
+            tabIndex={menuOpen ? 0 : -1}
+          >
+            <Download size={17} aria-hidden="true" />
+            Télécharger Modyx
+          </Link>
+        </nav>
       </div>
     </header>
   )
