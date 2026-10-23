@@ -9,7 +9,6 @@ const navLinks = [
   { href: '/', label: 'Accueil' },
   { href: '/download', label: 'Télécharger' },
   { href: '/pricing', label: 'Tarifs' },
-  { href: '/about', label: 'À propos' },
 ]
 
 export default function Header() {
