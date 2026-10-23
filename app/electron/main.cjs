@@ -483,11 +483,13 @@ function startPeriodicCheck() {
 }
 
 function createWindow() {
+    const iconPath = path.join(__dirname, "..", "assets", "logo.png");
     const win = new BrowserWindow({
         width: 1200,
         height: 800,
         show: false,
         autoHideMenuBar: true,
+        icon: iconPath,
         webPreferences: {
             contextIsolation: true,
             nodeIntegration: false,

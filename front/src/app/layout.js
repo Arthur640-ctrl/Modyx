@@ -15,7 +15,10 @@ const geistMono = Geist_Mono({
 export const metadata = {
   title: "Modyx",
   description: "Le site officiel de Modyx, le générateur de modpacks Minecraft.",
-};
+  icons: {
+    icon: "/logo.png",
+  },
+}
 
 export default function RootLayout({ children }) {
   return (
