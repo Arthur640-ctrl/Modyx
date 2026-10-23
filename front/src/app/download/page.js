@@ -1,126 +1,256 @@
-import { Download, ExternalLink, MonitorDown } from 'lucide-react'
-import Header from '../../components/Header'
-import Footer from '../../components/Footer'
-import styles from './page.module.css'
 
-const RELEASES_API_URL = 'https://api.github.com/repos/Arthur640-ctrl/Modyx-Releases/releases/latest'
-const RELEASES_URL = 'https://github.com/Arthur640-ctrl/Modyx-Releases/releases'
+import {
+  Download,
+  ExternalLink,
+  Monitor,
+  Terminal,
+} from "lucide-react";
+
+import Header from "../../components/Header";
+import Footer from "../../components/Footer";
+import styles from "./page.module.css";
+
+const RELEASES_API_URL = "https://api.github.com/repos/Arthur640-ctrl/Modyx-Releases/releases/latest"
+
+const RELEASES_URL = "https://github.com/Arthur640-ctrl/Modyx-Releases/releases"
+
+function getPlatform(name) {
+  const file = name.toLowerCase()
+
+  if (/\.(exe|msi|msix|appx)$/.test(file)) return "windows"
+
+  if (
+    /\.(appimage|deb|rpm|tar\.gz|tar\.xz|tgz|tar\.bz2)$/.test(file)
+  ) {
+    return "linux"
+  }
+
+  return null
+}
+
+function getFormat(name) {
+  const file = name.toLowerCase();
+
+  if (file.endsWith(".exe")) return "EXE";
+  if (file.endsWith(".msi")) return "MSI";
+  if (file.endsWith(".msix")) return "MSIX";
+  if (file.endsWith(".appx")) return "APPX";
+  if (file.endsWith(".appimage")) return "AppImage";
+  if (file.endsWith(".deb")) return "DEB";
+  if (file.endsWith(".rpm")) return "RPM";
+  if (file.endsWith(".tar.gz")) return "TAR.GZ";
+  if (file.endsWith(".tar.xz")) return "TAR.XZ";
+  if (file.endsWith(".tgz")) return "TGZ";
+  if (file.endsWith(".tar.bz2")) return "TAR.BZ2";
+
+  return "Fichier";
+}
+
+function formatSize(bytes) {
+  if (!bytes) return "—";
+
+  return bytes >= 1024 ** 3
+    ? `${(bytes / 1024 ** 3).toFixed(2)} Go`
+    : `${(bytes / 1024 ** 2).toFixed(1)} Mo`;
+}
+
+function formatDate(date) {
+  if (!date) return null;
+
+  return new Intl.DateTimeFormat("fr-FR", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(new Date(date));
+}
 
 async function getLatestRelease() {
   const response = await fetch(RELEASES_API_URL, {
     headers: {
-      Accept: 'application/vnd.github+json',
+      Accept: "application/vnd.github+json",
     },
     next: { revalidate: 300 },
-  })
+  });
 
   if (!response.ok) {
-    throw new Error(`GitHub a répondu avec le statut ${response.status}`)
+    throw new Error("Impossible de récupérer la release.");
   }
 
-  const release = await response.json()
-  const assets = (release.assets || []).filter((asset) => asset.name.toLowerCase().endsWith('.exe'))
+  const data = await response.json();
+
+  const assets = (data.assets || [])
+    .map((asset) => ({
+      ...asset,
+      platform: getPlatform(asset.name),
+    }))
+    .filter((asset) => asset.platform);
 
   return {
-    name: release.name || release.tag_name,
-    tagName: release.tag_name,
-    publishedAt: release.published_at,
-    htmlUrl: release.html_url,
+    name: data.name || data.tag_name,
+    tagName: data.tag_name,
+    publishedAt: data.published_at,
+    url: data.html_url,
     assets,
-  }
-}
-
-function formatReleaseDate(date) {
-  if (!date) return ''
-
-  return new Intl.DateTimeFormat('fr-FR', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  }).format(new Date(date))
+  };
 }
 
 export default async function DownloadPage() {
-  let release = null
-  let error = null
+  let release = null;
 
   try {
-    release = await getLatestRelease()
-  } catch (fetchError) {
-    error = fetchError
+    release = await getLatestRelease();
+  } catch {
+    // Le lien vers GitHub reste accessible en cas d'erreur.
   }
 
   return (
     <div className={styles.page}>
       <Header />
+
       <main className={styles.main}>
-        <section className={styles.hero}>
-          <span className={styles.eyebrow}><MonitorDown size={16} /> Application Windows</span>
-          <h1>Téléchargez Modyx</h1>
-          <p>
-            Installez la dernière version de Modyx pour créer vos modpacks Minecraft
-            directement depuis votre ordinateur.
-          </p>
-        </section>
+        <div className={styles.heading}>
+          <div>
+            <h1>Téléchargements</h1>
+            <p>
+              Téléchargez Modyx pour votre système d'exploitation.
+            </p>
+          </div>
 
-        {error && (
-          <section className={styles.status_card} role="alert">
-            <h2>Le téléchargement est temporairement indisponible</h2>
-            <p>La dernière release n&apos;a pas pu être récupérée. Vous pouvez consulter les releases GitHub directement.</p>
-            <a className={styles.secondary_button} href={RELEASES_URL} target="_blank" rel="noopener noreferrer">
-              Voir les releases GitHub <ExternalLink size={17} />
-            </a>
-          </section>
-        )}
+          <a
+            href={RELEASES_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={styles.github_link}
+          >
+            Toutes les versions
+            <ExternalLink size={15} />
+          </a>
+        </div>
 
-        {release && (
-          <section className={styles.release_card} aria-label={`Version ${release.name}`}>
-            <div className={styles.release_header}>
-              <div>
-                <span className={styles.release_label}>Dernière version</span>
-                <h2>{release.name}</h2>
-                <p>
+        {release ? (
+          <>
+            {/* <div className={styles.version_bar}>
+              <div className={styles.version_info}>
+                <span className={styles.status_dot} />
+                <span className={styles.version_label}>
+                  Dernière version
+                </span>
+                <span className={styles.version_number}>
                   {release.tagName}
-                  {release.publishedAt && ` · publiée le ${formatReleaseDate(release.publishedAt)}`}
-                </p>
+                </span>
               </div>
-              <ExternalLink className={styles.github_icon} size={32} aria-hidden="true" />
+
+              {release.publishedAt && (
+                <span className={styles.release_date}>
+                  Publiée le {formatDate(release.publishedAt)}
+                </span>
+              )}
+            </div> */}
+
+            <div className={styles.table_wrapper}>
+              <table className={styles.table}>
+                <thead>
+                  <tr>
+                    <th>Plateforme</th>
+                    <th>Fichier</th>
+                    <th>Format</th>
+                    <th>Taille</th>
+                    <th aria-label="Télécharger" />
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {release.assets.map((asset) => {
+                    const isWindows = asset.platform === "windows";
+                    const PlatformIcon = isWindows ? Monitor : Terminal;
+
+                    return (
+                      <tr key={asset.id}>
+                        <td>
+                          <div className={styles.platform}>
+                            <PlatformIcon size={17} />
+                            <span>
+                              {isWindows ? "Windows" : "Linux"}
+                            </span>
+                          </div>
+                        </td>
+
+                        <td>
+                          <span className={styles.filename}>
+                            {asset.name}
+                          </span>
+                        </td>
+
+                        <td>
+                          <span className={styles.format}>
+                            {getFormat(asset.name)}
+                          </span>
+                        </td>
+
+                        <td className={styles.size}>
+                          {formatSize(asset.size)}
+                        </td>
+
+                        <td className={styles.action_cell}>
+                          <a
+                            href={asset.browser_download_url}
+                            className={styles.download_button}
+                            aria-label={`Télécharger ${asset.name}`}
+                          >
+                            <Download size={16} />
+                            <span>Télécharger</span>
+                          </a>
+                        </td>
+                      </tr>
+                    );
+                  })}
+
+                  {release.assets.length === 0 && (
+                    <tr>
+                      <td colSpan={5} className={styles.empty_state}>
+                        Aucun installateur Windows ou Linux reconnu
+                        dans cette version. Consultez les fichiers
+                        disponibles sur GitHub.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
 
-            {release.assets.length > 0 ? (
-              <div className={styles.asset_list}>
-                {release.assets.map((asset) => (
-                  <a
-                    className={styles.asset}
-                    href={asset.browser_download_url}
-                    key={asset.id}
-                  >
-                    <div className={styles.asset_info}>
-                      <Download size={20} />
-                      <span>
-                        <strong>{asset.name}</strong>
-                        <small>{(asset.size / (1024 * 1024)).toFixed(1)} Mo · Windows</small>
-                      </span>
-                    </div>
-                    <span className={styles.asset_action}>Télécharger</span>
-                  </a>
-                ))}
-              </div>
-            ) : (
-              <p className={styles.empty_state}>Aucun installateur Windows n&apos;est disponible dans cette release.</p>
-            )}
+            <div className={styles.table_footer}>
+              <span>
+                {release.assets.length} fichier
+                {release.assets.length > 1 ? "s" : ""} disponible
+                {release.assets.length > 1 ? "s" : ""}
+              </span>
 
-            <a className={styles.release_link} href={release.htmlUrl} target="_blank" rel="noopener noreferrer">
-              Consulter la release sur GitHub <ExternalLink size={15} />
+              <a
+                href={release.url}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Notes de version
+                <ExternalLink size={14} />
+              </a>
+            </div>
+          </>
+        ) : (
+          <div className={styles.error_state}>
+            <p>
+              Impossible de récupérer les téléchargements pour le
+              moment.
+            </p>
+            <a href={RELEASES_URL} target="_blank" rel="noopener noreferrer">
+              Accéder aux releases GitHub
+              <ExternalLink size={15} />
             </a>
-          </section>
+          </div>
         )}
 
-        <p className={styles.note}>
-          Modyx est actuellement disponible uniquement pour Windows via un installateur .exe.
-        </p>
       </main>
+
       <Footer />
     </div>
-  )
+  );
 }
