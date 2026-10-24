@@ -30,5 +30,8 @@ services:
 
     env_file:
       - ./back/.env.production
+    
+    environment:
+      - APP_ENV=production
 
     restart: unless-stopped

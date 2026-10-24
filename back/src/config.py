@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 
-app_env = os.getenv("APP_ENV", "local")
+app_env = os.getenv("APP_ENV", "production")
 
 # Dossier back/
 BASE_DIR = Path(__file__).resolve().parent.parent
