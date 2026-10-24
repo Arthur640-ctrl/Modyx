@@ -9,6 +9,7 @@ RUN npm ci
 COPY . .
 
 ENV NODE_ENV=production
+ENV NEXT_PUBLIC_API_URL=http://api.modyx.gleeze.com
 
 RUN npm run build
 
