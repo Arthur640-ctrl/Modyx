@@ -13,7 +13,8 @@ import {
     Trash2,
     HardDrive,
     CheckCircle,
-    AlertCircle
+    AlertCircle,
+    Download
 } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom"
@@ -123,6 +124,9 @@ export default function Editor() {
     const [active_sidebar_tab, set_active_sidebar_tab] = useState("mods")
     const [mod_search, set_mod_search] = useState("")
     const [prompt, set_prompt] = useState("")
+    const [is_downloading, set_is_downloading] = useState(false)
+    const [download_status, set_download_status] = useState("")
+
 
     const mod_entries = Array.isArray(modpack_data?.state?.mods)
         ? modpack_data.state.mods
@@ -341,6 +345,79 @@ export default function Editor() {
         set_prompt(textarea.value)
     }
 
+    async function handle_download_pack() {
+        if (!mod_entries || mod_entries.length === 0) {
+            alert("Il n'y a aucun mod à télécharger dans ce pack.");
+            return;
+        }
+
+        set_is_downloading(true);
+
+        try {
+            const downloadsPath = window.modyx?.getDownloadsPath 
+                ? await window.modyx.getDownloadsPath() 
+                : null;
+
+            if (!downloadsPath) {
+                alert("Impossible de récupérer le dossier Téléchargements.");
+                set_is_downloading(false);
+                return;
+            }
+
+            // 1. Préparer le nom propre du dossier
+            const rawPackName = modpack_data.display_name || "Modpack-Modyx";
+            const safeFolderName = rawPackName.replace(/[/\\?%*:|"<>]/g, "-");
+
+            // 2. Demander au main Electron de créer le dossier (avec gestion automatique des doublons (1), (2)...)
+            const packFolderPath = window.modyx?.createDirectory 
+                ? await window.modyx.createDirectory(downloadsPath, safeFolderName)
+                : `${downloadsPath}\\${safeFolderName}`;
+
+            let successCount = 0;
+            const totalMods = mod_entries.length;
+
+            for (let i = 0; i < totalMods; i++) {
+                const mod = mod_entries[i];
+                if (!mod.version_id) continue;
+
+                set_download_status(`Téléchargement de ${mod.title || "un mod"} (${i + 1}/${totalMods})...`);
+
+                // Récupérer les métadonnées depuis Modrinth
+                const res = await fetch(`https://api.modrinth.com/v2/version/${mod.version_id}`);
+                if (!res.ok) continue;
+                
+                const versionData = await res.json();
+                const primaryFile = versionData.files.find((f) => f.primary) || versionData.files[0];
+                if (!primaryFile) continue;
+
+                // Télécharger le .jar
+                const jarRes = await fetch(primaryFile.url);
+                if (!jarRes.ok) continue;
+                const arrayBuffer = await jarRes.arrayBuffer();
+
+                // Sauvegarder dans le sous-dossier du modpack
+                if (window.modyx?.saveFile) {
+                    await window.modyx.saveFile({
+                        folderPath: packFolderPath,
+                        filename: primaryFile.filename,
+                        data: Array.from(new Uint8Array(arrayBuffer))
+                    });
+                    successCount++;
+                }
+            }
+
+            set_download_status("");
+            alert(`Terminé ! ${successCount}/${totalMods} mod(s) enregistré(s) dans le dossier "${safeFolderName}" de vos Téléchargements.`);
+
+        } catch (error) {
+            console.error("Erreur lors du téléchargement du pack:", error);
+            alert("Une erreur est survenue lors du téléchargement des mods.");
+        } finally {
+            set_is_downloading(false);
+            set_download_status("");
+        }
+    }
+
     return (
         <div className={styles.editor_screen}>
 
@@ -427,6 +504,16 @@ export default function Editor() {
                         <FolderOpen size={18} />
                         <span>Edition : {modpack_data.display_name || "Null"}</span>
                     </div>
+
+                    <button 
+                        className={styles.download_pack_button} 
+                        type="button"
+                        onClick={handle_download_pack}
+                        disabled={is_downloading}
+                    >
+                        <Download size={16} />
+                        {is_downloading ? (download_status || "Téléchargement...") : "Télécharger le pack"}
+                    </button>
                 </div>
             </div>
 
@@ -481,7 +568,7 @@ export default function Editor() {
                                 {filtered_mod_entries.length > 0 ? (
                                     filtered_mod_entries.map((mod, index) => (
                                         <div
-                                            key={`${mod.mod_id ?? "mod"}-${mod.version_id ?? index}`}
+                                            key={`${mod.mod_id ?? "mod"}-${mod.version_id}`}
                                             className={styles.mod_row}
                                             title={`version_id: ${mod.version_id ?? "N/A"}\nmod_id: ${mod.mod_id ?? "N/A"}`}
                                         >

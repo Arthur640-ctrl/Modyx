@@ -13,6 +13,10 @@ function subscribe(channel, listener) {
 contextBridge.exposeInMainWorld("modyx", {
     openExternal: (url) => ipcRenderer.invoke("open-external", url),
 
+    getDownloadsPath: () => ipcRenderer.invoke("get-downloads-path"),
+    createDirectory: (basePath, name) => ipcRenderer.invoke("fs:create-directory", basePath, name),
+    saveFile: (fileData) => ipcRenderer.invoke("fs:save-file", fileData),
+
     getUpdateState: () => ipcRenderer.invoke("get-update-state"),
     checkForUpdates: (isManual = false) => ipcRenderer.invoke("check-for-updates", isManual),
     installUpdate: () => ipcRenderer.invoke("install-update"),
@@ -31,4 +35,4 @@ contextBridge.exposeInMainWorld("modyx", {
         pickFolder: () => ipcRenderer.invoke("minecraft:pick-folder"),
         autoDetect: () => ipcRenderer.invoke("minecraft:auto-detect")
     }
-});
+})

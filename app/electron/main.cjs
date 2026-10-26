@@ -84,6 +84,32 @@ ipcMain.handle("open-external", async (_event, url) => {
     await shell.openExternal(parsedUrl.toString());
 });
 
+ipcMain.handle("get-downloads-path", () => {
+    return app.getPath("downloads");
+});
+
+ipcMain.handle("fs:save-file", async (_event, { folderPath, filename, data }) => {
+    const filePath = path.join(folderPath, filename);
+    fs.writeFileSync(filePath, Buffer.from(data));
+    return filePath;
+})
+
+ipcMain.handle("fs:create-directory", async (_event, baseFolderPath, folderName) => {
+    let finalFolderName = folderName;
+    let finalPath = path.join(baseFolderPath, finalFolderName);
+    let counter = 1;
+
+    // Si le dossier existe déjà, on incrémente (ex: Nom (1), Nom (2)...)
+    while (fs.existsSync(finalPath)) {
+        finalFolderName = `${folderName} (${counter})`;
+        finalPath = path.join(baseFolderPath, finalFolderName);
+        counter++;
+    }
+
+    fs.mkdirSync(finalPath, { recursive: true });
+    return finalPath; // On retourne le chemin final unique
+});
+
 const MINECRAFT_CONFIG_FILE = path.join(app.getPath("userData"), "minecraft-config.json");
 
 function getMinecraftSearchPaths() {

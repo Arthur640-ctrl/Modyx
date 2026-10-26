@@ -89,6 +89,35 @@
     width: 100%;
 }
 
+.download_pack_button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    background: var(--accent);
+    color: var(--text);
+    border-radius: 10px;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: filter 0.15s ease, transform 0.15s ease;
+}
+
+.download_pack_button:hover {
+    filter: brightness(1.05);
+}
+
+.download_pack_button:active {
+    transform: scale(0.98);
+}
+
+.download_pack_button svg {
+    flex-shrink: 0;
+}
+
 .header_title {
     display: flex;
     align-items: center;

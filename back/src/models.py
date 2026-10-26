@@ -21,6 +21,8 @@ class User(Document):
     email_verification_attempts: int = 0
     email_verification_last_sent_at: datetime | None = None
 
+    admin: bool = False
+
     created_at : str = Field(default_factory=lambda: datetime.utcnow().isoformat())
     updated_at : str = Field(default_factory=lambda: datetime.utcnow().isoformat())
 
