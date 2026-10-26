@@ -12,3 +12,4 @@ resend==2.42.0
 slowapi==0.1.10
 uvicorn==0.49.0
 email-validator==2.3.0
+litellm==1.106.3

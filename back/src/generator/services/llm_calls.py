@@ -18,153 +18,297 @@ from generator.services.llm_router import router
 
 from generator.stream_manager import *
 
+
+from types import SimpleNamespace
+
+from generator.llm.registry import registry
+from generator.services.llm_router import router
+from generator.stream_manager import stream_manager
+
+
+import asyncio
+import inspect
+import time
+from types import SimpleNamespace
+
+from generator.llm.registry import registry
+from generator.services.llm_router import router
+from generator.stream_manager import stream_manager
+
+
+async def _close_llm_stream(response):
+    """Ferme proprement un flux abandonné avant le premier chunk."""
+    if response is None:
+        return
+
+    close = (
+        getattr(response, "aclose", None)
+        or getattr(response, "close", None)
+    )
+
+    if close:
+        try:
+            result = close()
+            if inspect.isawaitable(result):
+                await result
+        except Exception:
+            pass
+
+
+async def _chunks_from_first(first_chunk, iterator):
+    """Réinjecte le premier chunk avant de continuer le flux."""
+    yield first_chunk
+    async for chunk in iterator:
+        yield chunk
+
+
 async def call_llm(
     messages: list[dict],
     *,
     tools: bool = True,
     agent_run_id: str = "",
     stream_as: str = "",
-    verbose: bool = False
+    verbose: bool = False,
 ):
-    models = await router.get_available_models()
+    aliases = router.model_aliases
 
-    if not models:
+    if not aliases:
         raise RuntimeError("No available LLM model")
 
-    for model_info in models:
-        model_id = model_info["model_id"]
-        api_key = model_info["api_key"]
-        provider_url = model_info["provider_url"]
-        provider_id = model_info.get("provider_id")
+    # Délai maximal entre le lancement d'un modèle
+    # et la réception de son premier chunk.
+    first_chunk_timeout = 120.0
 
-        client = AsyncOpenAI(
-            base_url=provider_url,
-            api_key=api_key,
-        )
+    kwargs = {
+        "messages": messages,
+        "stream": True,
+        "stream_options": {"include_usage": True},
+    }
 
-        kwargs = {
-            "model": model_id,
-            "messages": messages,
-            "stream": True,
-            "stream_options": {
-                "include_usage": True
-            },
-        }
+    if tools:
+        kwargs["tools"] = registry.get_definitions()
+        kwargs["tool_choice"] = "auto"
 
-        if tools:
-            kwargs["tools"] = registry.get_definitions()
-            kwargs["tool_choice"] = "auto"
+    response = None
+    iterator = None
+    first_chunk = None
+    selected_alias = None
+    last_error = None
 
-        if verbose:
-            print(f"[LLM] trying provider={provider_id} model={model_id}")
+    # Fallback manuel : chaque modèle dispose de son propre délai.
+    for model_alias in aliases:
+        started = time.monotonic()
+        deadline = started + first_chunk_timeout
+        response = None
 
         try:
-            # Appliquer le rate limit global avant d'exécuter la requête
-            await router.acquire_rate_limit(provider_id)
+            if verbose:
+                print(f"[LLM] Trying {model_alias}")
 
-            response = await client.chat.completions.create(**kwargs)
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise asyncio.TimeoutError()
 
-            await stream_manager.add_message(
-                agent_run_id=agent_run_id,
-                role=stream_as
+            # Le délai couvre aussi l'ouverture de la requête.
+            response = await asyncio.wait_for(
+                router.acompletion(
+                    model=model_alias,
+                    **kwargs,
+                ),
+                timeout=remaining,
             )
 
-            content = ""
-            role = None
-            tool_calls = {}
+            iterator = response.__aiter__()
+
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise asyncio.TimeoutError()
+
+            # Attendre explicitement le premier chunk.
+            first_chunk = await asyncio.wait_for(
+                iterator.__anext__(),
+                timeout=remaining,
+            )
+
+            selected_alias = model_alias
+            elapsed = time.monotonic() - started
+
+            print(
+                f"[LLM] First chunk from {model_alias} "
+                f"after {elapsed:.2f}s"
+            )
+            break
+
+        except (asyncio.TimeoutError, TimeoutError) as exc:
+            last_error = exc
+            elapsed = time.monotonic() - started
+
+            print(
+                f"[LLM] {model_alias} timed out after "
+                f"{elapsed:.2f}s; trying next model"
+            )
+            await _close_llm_stream(response)
+            response = None
+            iterator = None
+            first_chunk = None
+
+        except Exception as exc:
+            last_error = exc
+            elapsed = time.monotonic() - started
+
+            print(
+                f"[LLM] {model_alias} failed after "
+                f"{elapsed:.2f}s: {exc}; trying next model"
+            )
+            await _close_llm_stream(response)
+            response = None
+            iterator = None
+            first_chunk = None
+
+    if selected_alias is None:
+        raise RuntimeError(
+            "All LLM models failed before the first chunk"
+        ) from last_error
+
+    # On n'envoie rien au flux utilisateur avant d'avoir
+    # sélectionné un modèle qui a commencé à répondre.
+    await stream_manager.add_message(
+        agent_run_id=agent_run_id,
+        role=stream_as,
+    )
+
+    content = ""
+    role = None
+    tool_calls = {}
+
+    usage_metrics = {
+        "prompt_tokens_raw": 0,
+        "cache_hit_tokens": 0,
+        "cache_miss_tokens": 0,
+        "output_tokens": 0,
+        "total_tokens": 0,
+    }
+
+    actual_model = selected_alias
+
+    # Après le premier chunk, on laisse ce modèle terminer.
+    async for chunk in _chunks_from_first(first_chunk, iterator):
+        # print("[LLM DEBUG] Chunk reçu")
+
+        # if chunk.choices:
+        #     delta = chunk.choices[0].delta
+        #     print(
+        #         "[LLM DEBUG] content =", repr(delta.content),
+        #         "| tool_calls =", bool(delta.tool_calls),
+        #         "| finish_reason =", chunk.choices[0].finish_reason,
+        #     )
+        # else:
+        #     print("[LLM DEBUG] Chunk sans choices (usage/métadonnées)")
+
+        if getattr(chunk, "model", None):
+            actual_model = chunk.model
+
+        usage = getattr(chunk, "usage", None)
+
+        if usage:
+            raw_prompt = getattr(usage, "prompt_tokens", 0) or 0
+            details = getattr(usage, "prompt_tokens_details", None)
+            cache_hit = (
+                getattr(details, "cached_tokens", 0) or 0
+                if details else 0
+            )
+            output = getattr(usage, "completion_tokens", 0) or 0
+            total = getattr(usage, "total_tokens", 0) or (
+                raw_prompt + output
+            )
 
             usage_metrics = {
-                "prompt_tokens_raw": 0,
-                "cache_hit_tokens": 0,
-                "cache_miss_tokens": 0,
-                "output_tokens": 0,
-                "total_tokens": 0,
+                "prompt_tokens_raw": raw_prompt,
+                "cache_hit_tokens": cache_hit,
+                "cache_miss_tokens": max(0, raw_prompt - cache_hit),
+                "output_tokens": output,
+                "total_tokens": total,
             }
 
-            async for chunk in response:
-                if getattr(chunk, "usage", None):
-                    u = chunk.usage
-                    raw_prompt = getattr(u, "prompt_tokens", 0) or 0
-                    prompt_details = getattr(u, "prompt_tokens_details", None)
-                    cache_hit = getattr(prompt_details, "cached_tokens", 0) if prompt_details else 0
-                    output = getattr(u, "completion_tokens", 0) or 0
-                    total = getattr(u, "total_tokens", 0) or (raw_prompt + output)
-                    cache_miss = max(0, raw_prompt - cache_hit)
-
-                    usage_metrics = {
-                        "prompt_tokens_raw": raw_prompt,
-                        "cache_hit_tokens": cache_hit,
-                        "cache_miss_tokens": cache_miss,
-                        "output_tokens": output,
-                        "total_tokens": total
-                    }
-
-                if not chunk.choices:
-                    continue
-
-                delta = chunk.choices[0].delta
-
-                if delta.role:
-                    role = delta.role
-
-                if delta.content:
-                    await stream_manager.update_content(agent_run_id, delta.content)
-                    content += delta.content
-
-                if delta.tool_calls:
-                    for tool_call in delta.tool_calls:
-                        await stream_manager.update_tool_call(agent_run_id, tool_call.index, tool_call)
-                        index = tool_call.index
-
-                        if index not in tool_calls:
-                            tool_calls[index] = {
-                                "id": "",
-                                "type": "function",
-                                "function": {"name": "", "arguments": ""}
-                            }
-
-                        current = tool_calls[index]
-                        if tool_call.id:
-                            current["id"] = tool_call.id
-                        if tool_call.type:
-                            current["type"] = tool_call.type
-                        if tool_call.function:
-                            if tool_call.function.name:
-                                current["function"]["name"] += tool_call.function.name
-                            if tool_call.function.arguments:
-                                current["function"]["arguments"] += tool_call.function.arguments
-
-            formatted_tool_calls = []
-            for tool_call in tool_calls.values():
-                formatted_tool_calls.append(
-                    SimpleNamespace(
-                        id=tool_call["id"],
-                        type=tool_call["type"],
-                        function=SimpleNamespace(
-                            name=tool_call["function"]["name"],
-                            arguments=tool_call["function"]["arguments"]
-                        )
-                    )
-                )
-
-            await update_agent_run_usage(usage_metrics, agent_run_id, model_id)
-            await client.close()
-
-            print(f"[ROUTER] - Model {model_id} from {provider_id} used for the call.")
-
-            return SimpleNamespace(
-                role=role or "assistant",
-                content=content or None,
-                tool_calls=formatted_tool_calls or None,
-                usage=usage_metrics
-            )
-
-        except Exception as e:
-            print(f"[LLM] generation failed provider={provider_id} model={model_id}: {e}")
-            await client.close()
+        if not chunk.choices:
             continue
 
-    raise RuntimeError("All available LLM models failed")
+        delta = chunk.choices[0].delta
+
+        if delta.role:
+            role = delta.role
+
+        if delta.content:
+            await stream_manager.update_content(
+                agent_run_id, delta.content
+            )
+            content += delta.content
+
+        if delta.tool_calls:
+            for tool_call in delta.tool_calls:
+                index = tool_call.index
+
+                await stream_manager.update_tool_call(
+                    agent_run_id, index, tool_call
+                )
+
+                if index not in tool_calls:
+                    tool_calls[index] = {
+                        "id": "",
+                        "type": "function",
+                        "function": {
+                            "name": "",
+                            "arguments": "",
+                        },
+                    }
+
+                current = tool_calls[index]
+
+                if tool_call.id:
+                    current["id"] = tool_call.id
+
+                if tool_call.type:
+                    current["type"] = tool_call.type
+
+                if tool_call.function:
+                    if tool_call.function.name:
+                        current["function"]["name"] += (
+                            tool_call.function.name
+                        )
+
+                    if tool_call.function.arguments:
+                        current["function"]["arguments"] += (
+                            tool_call.function.arguments
+                        )
+
+    formatted_tool_calls = [
+        SimpleNamespace(
+            id=item["id"],
+            type=item["type"],
+            function=SimpleNamespace(
+                name=item["function"]["name"],
+                arguments=item["function"]["arguments"],
+            ),
+        )
+        for item in tool_calls.values()
+    ]
+
+    await update_agent_run_usage(
+        usage_metrics,
+        agent_run_id,
+        actual_model,
+    )
+
+    print(f"[LLM] Completed using model={actual_model}")
+
+    return SimpleNamespace(
+        role=role or "assistant",
+        content=content or None,
+        tool_calls=formatted_tool_calls or None,
+        usage=usage_metrics,
+    )
+
+
 
 async def update_agent_run_usage(
     usage_metrics: dict,

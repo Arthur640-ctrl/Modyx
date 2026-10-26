@@ -4,6 +4,7 @@
 
 # Back
 /back/.env.production
+/back/.env.local
 /back/.pytest_cache
 /back/tests
 /back/src/__pycache__
@@ -29,6 +30,6 @@ back/llm_config.json
 back/src/generator/services/__pycache__/llm_calls.cpython-313.pyc
 back/src/generator/services/__pycache__/llm_router.cpython-313.pyc
 
+
 # App
 /app/dist-electron
-

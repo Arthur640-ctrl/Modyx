@@ -25,18 +25,12 @@ async def lifespan(app: FastAPI):
         for _ in range(2)
     ]
 
-    router_task = asyncio.create_task(
-        router.start()
-    )
-
     print("API started.")
 
     yield
 
     for worker in workers:
         worker.cancel()
-
-    router_task.cancel()
 
     await asyncio.gather(
         *workers,
